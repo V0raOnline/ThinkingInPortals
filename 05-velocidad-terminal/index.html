@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigue cayendo. Has dejado de acelerar.</title>
+<style>
+  :root {
+    --bg: #EDE7D9;
+    --panel: #FFFFFF;
+    --panel-border: #D8D0BC;
+    --ink: #201C16;
+    --ink-soft: #6B6355;
+    --floor: #C9C0A8;
+    --grid-line: rgba(32,28,22,0.06);
+    --blue: #1E7FB8;
+    --blue-glow: rgba(30,127,184,0.35);
+    --orange: #D9611E;
+    --orange-glow: rgba(217,97,30,0.35);
+    --trace: rgba(32,28,22,0.28);
+    --accent-btn: #201C16;
+    --accent-btn-text: #EDE7D9;
+    font-family: "IBM Plex Sans", -apple-system, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181A;
+      --panel: #1F2226;
+      --panel-border: #34383D;
+      --ink: #EDEAE3;
+      --ink-soft: #97928A;
+      --floor: #2A2D31;
+      --grid-line: rgba(237,234,227,0.06);
+      --blue: #4FB4E8;
+      --blue-glow: rgba(79,180,232,0.35);
+      --orange: #F08A47;
+      --orange-glow: rgba(240,138,71,0.35);
+      --trace: rgba(237,234,227,0.25);
+      --accent-btn: #EDEAE3;
+      --accent-btn-text: #16181A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #16181A;
+    --panel: #1F2226;
+    --panel-border: #34383D;
+    --ink: #EDEAE3;
+    --ink-soft: #97928A;
+    --floor: #2A2D31;
+    --grid-line: rgba(237,234,227,0.06);
+    --blue: #4FB4E8;
+    --blue-glow: rgba(79,180,232,0.35);
+    --orange: #F08A47;
+    --orange-glow: rgba(240,138,71,0.35);
+    --trace: rgba(237,234,227,0.25);
+    --accent-btn: #EDEAE3;
+    --accent-btn-text: #16181A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body { margin: 0; background: var(--bg); color: var(--ink); padding: 28px 20px 40px; }
+  .app { max-width: 1040px; margin: 0 auto; }
+
+  .back-link {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    margin-bottom: 18px;
+  }
+  .back-link:hover { color: var(--ink); }
+
+  .sim-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .sim-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px 6px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    text-decoration: none;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .sim-pill:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .sim-pill .mini-shape {
+    position: relative;
+    width: 15px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--blue);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sim-pill .mini-shape svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sim-pill .mini-shape path {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.9;
+    stroke: var(--blue);
+  }
+
+  .sim-pill[data-color="orange"] .mini-shape { border-color: var(--orange); }
+  .sim-pill[data-color="orange"] .mini-shape path { stroke: var(--orange); }
+
+  .sim-pill.current {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+    font-weight: 600;
+    cursor: default;
+  }
+  header.nameplate { margin-bottom: 22px; }
+
+  header.nameplate h1 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    line-height: 1.25;
+    margin: 0 0 8px;
+    max-width: 40ch;
+  }
+
+  header.nameplate p {
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  header.nameplate p a { color: var(--orange); text-decoration: none; font-weight: 600; }
+  header.nameplate p a:hover { text-decoration: underline; }
+
+  main.stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 760px) { main.stage { grid-template-columns: 1fr; } }
+
+  .canvas-wrap {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .punch-box {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 9px 13px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    display: none;
+    z-index: 5;
+  }
+
+  .punch-box.show { display: block; }
+  .punch-box.success { color: var(--orange); border-color: var(--orange); }
+  .punch-box.fail { color: var(--blue); border-color: var(--blue); }
+  .punch-box a { color: inherit; text-decoration: underline; }
+
+  canvas { display: block; width: 100%; height: auto; border-radius: 2px; }
+
+  aside.panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+
+  .control label span:last-child {
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--blue); }
+  input[type="range"]:disabled { opacity: 0.5; }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  button.primary { background: var(--accent-btn); color: var(--accent-btn-text); }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--panel-border); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  .readout { border-top: 1px solid var(--panel-border); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .stat { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.88rem; }
+  .stat-label { color: var(--ink-soft); }
+  .stat-value { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.95rem; }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.orange { color: var(--orange); }
+
+  .note { font-size: 0.85rem; line-height: 1.55; color: var(--ink-soft); margin: 0; }
+  .note strong { color: var(--ink); }
+  .note a { color: var(--orange); text-decoration: none; font-weight: 600; }
+  .note a:hover { text-decoration: underline; }
+
+  .explain {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+
+
+</style>
+</head>
+<body>
+<div class="app">
+<a class="back-link" href="../index.html">← Inicio</a>
+<nav class="sim-nav">
+    <a class="sim-pill" data-color="blue" href="../01-conservacion-rapidez/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,10 L34,80 L58,32" /></svg></span>01</a>
+    <a class="sim-pill" data-color="orange" href="../02-trayectorias/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 Q34,8 58,80" /></svg></span>02</a>
+    <a class="sim-pill" data-color="blue" href="../03-esfera-energia/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 L58,18" /></svg></span>03</a>
+    <a class="sim-pill" data-color="orange" href="../04-fling-cadena/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,12 L34,88" /></svg></span>04</a>
+    <span class="sim-pill current" data-color="blue"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,6 C34,45 34,55 34,80" /></svg></span>05</span>
+  </nav>
+
+  <header class="nameplate">
+    <h1>Sigue cayendo. Has dejado de acelerar.</h1>
+    <p>Dentro del juego no hay resistencia del aire, así que un bucle como el de <a href="../04-fling-cadena/index.html">la demo anterior → fling</a> podría acumular velocidad sin límite. En la vida real, el rozamiento frena esa acumulación hasta que la velocidad se estanca en la velocidad terminal.</p>
+  </header>
+
+  <main class="stage">
+    <div class="canvas-wrap">
+      <div class="punch-box" id="punchBox"></div>
+      <canvas id="sim" width="920" height="480"></canvas>
+    </div>
+
+    <aside class="panel">
+      <div class="control">
+        <label>Velocidad terminal <span id="vtVal">53 m/s</span></label>
+        <input type="range" id="vtSlider" min="20" max="70" step="1" value="53">
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" id="launchBtn">Simular caída</button>
+        <button class="secondary" id="resetBtn">Reiniciar</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat">
+          <span class="stat-label">Tiempo simulado</span>
+          <span class="stat-value" id="tVal">0.0 s</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Velocidad real (con rozamiento)</span>
+          <span class="stat-value blue" id="vRealVal">0.0 m/s</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Velocidad Portal (sin rozamiento)</span>
+          <span class="stat-value orange" id="vIdealVal">0.0 m/s</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Distancia caída (real)</span>
+          <span class="stat-value blue" id="hRealVal">0 m</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Distancia caída (Portal)</span>
+          <span class="stat-value orange" id="hIdealVal">0 m</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="explain">
+    <p class="note" id="note">Ajusta la velocidad terminal y pulsa «Simular caída». Compara la curva de velocidad (arriba, se aplana) con la de distancia (abajo, sigue subiendo).</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('sim');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const vtSlider = document.getElementById('vtSlider');
+  const vtVal = document.getElementById('vtVal');
+  const tVal = document.getElementById('tVal');
+  const vRealVal = document.getElementById('vRealVal');
+  const vIdealVal = document.getElementById('vIdealVal');
+  const hRealVal = document.getElementById('hRealVal');
+  const hIdealVal = document.getElementById('hIdealVal');
+  const note = document.getElementById('note');
+  const punchBox = document.getElementById('punchBox');
+  const launchBtn = document.getElementById('launchBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const g = 9.8;
+
+  // rects de las dos gráficas dentro del canvas
+  const chartSpeed = { x: 210, y: 20, w: 690, h: 170 };
+  const chartHeight = { x: 210, y: 270, w: 690, h: 180 };
+
+  // bucle visual de portales (izquierda): puramente ilustrativo del ritmo de caída
+  const shaftX = 95;
+  const shaftTop = 40;
+  const shaftBottom = 440;
+  const loopMeters = 25; // "1 vuelta" = esta distancia real caída
+  let lastLoopIndex = -1;
+  let loopPulseTime = null;
+
+  let vTerm = parseFloat(vtSlider.value);
+  let c, Ttotal, speedYMax, heightYMax;
+
+  function recomputeDomain() {
+    vTerm = parseFloat(vtSlider.value);
+    c = g / vTerm;
+    Ttotal = 6 / c;
+    speedYMax = 2 * vTerm;
+    const hRealAtT = vTerm * (Ttotal - (1 / c) * (1 - Math.exp(-c * Ttotal)));
+    heightYMax = 1.2 * hRealAtT;
+  }
+
+  let state = 'idle'; // idle | running | done
+  let animStart = null;
+  const animDuration = 4.5; // segundos reales que dura la animación completa
+
+  let realSpeedPts = [];
+  let idealSpeedPts = [];
+  let realHeightPts = [];
+  let idealHeightPts = [];
+  let currentHReal = 0;
+
+  const closingLines = [
+    'Con fricción real, la velocidad tiene techo. El bucle de <a href="../04-fling-cadena/index.html">la demo anterior → fling</a>, fuera del juego, también lo tendría.',
+    'La distancia nunca deja de crecer. La velocidad, sí. Son cosas distintas, aunque compartan gráfica.',
+    'La física del juego no se equivoca: simplemente decidió no incluir el aire. Aquí sí lo incluimos.',
+    'Los resultados pueden contradecir sus expectativas. No se considera un error del sistema.'
+  ];
+
+  function setControlsState(running) {
+    launchBtn.classList.toggle('primary', !running);
+    launchBtn.classList.toggle('secondary', running);
+    launchBtn.disabled = running;
+    resetBtn.classList.toggle('primary', running);
+    resetBtn.classList.toggle('secondary', !running);
+    vtSlider.disabled = running;
+  }
+
+  function resetAll() {
+    state = 'idle';
+    recomputeDomain();
+    animStart = null;
+    realSpeedPts = [];
+    idealSpeedPts = [];
+    realHeightPts = [];
+    idealHeightPts = [];
+    currentHReal = 0;
+    lastLoopIndex = -1;
+    loopPulseTime = null;
+    tVal.textContent = '0.0 s';
+    vRealVal.textContent = '0.0 m/s';
+    vIdealVal.textContent = '0.0 m/s';
+    hRealVal.textContent = '0 m';
+    hIdealVal.textContent = '0 m';
+    punchBox.classList.remove('show', 'success', 'fail');
+    note.innerHTML = 'Ajusta la velocidad terminal y pulsa «Simular caída». Compara la curva de velocidad (arriba, se aplana) con la de distancia (abajo, sigue subiendo).';
+    setControlsState(false);
+    draw();
+  }
+
+  function getCss(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  function mapPt(rect, xDomainMax, yDomainMax, t, v) {
+    const x = rect.x + (t / xDomainMax) * rect.w;
+    const y = rect.y + rect.h - (Math.max(0, Math.min(v, yDomainMax)) / yDomainMax) * rect.h;
+    return { x, y };
+  }
+
+  function drawChartFrame(rect, title, yLabel, yMaxLabel) {
+    ctx.strokeStyle = getCss('--panel-border');
+    ctx.lineWidth = 1;
+    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+    ctx.fillStyle = getCss('--ink-soft');
+    ctx.font = '12px "IBM Plex Sans", sans-serif';
+    ctx.fillText(title, rect.x, rect.y - 6);
+    ctx.save();
+    ctx.translate(rect.x - 46, rect.y + rect.h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+
+    ctx.textAlign = 'right';
+    ctx.fillText(yMaxLabel, rect.x - 6, rect.y + 10);
+    ctx.fillText('0', rect.x - 6, rect.y + rect.h);
+    ctx.textAlign = 'left';
+
+    // líneas guía horizontales
+    ctx.strokeStyle = getCss('--grid-line');
+    for (let i = 1; i < 4; i++) {
+      const y = rect.y + (rect.h / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(rect.x, y);
+      ctx.lineTo(rect.x + rect.w, y);
+      ctx.stroke();
+    }
+  }
+
+  function drawCurve(rect, xDomainMax, yDomainMax, pts, color, dashed) {
+    if (pts.length < 2) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.2;
+    if (dashed) ctx.setLineDash([5, 4]); else ctx.setLineDash([]);
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const pt = mapPt(rect, xDomainMax, yDomainMax, p.t, p.v);
+      if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawFlatPortal(px, py, color, glow) {
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 14;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 24, 7, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLoopVisual(hReal) {
+    ctx.fillStyle = getCss('--ink-soft');
+    ctx.font = '11px "IBM Plex Sans", sans-serif';
+    ctx.fillText('Ritmo del bucle', shaftX - 55, 16);
+
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = getCss('--ink-soft');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(shaftX, shaftTop);
+    ctx.lineTo(shaftX, shaftBottom);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    drawFlatPortal(shaftX, shaftBottom, getCss('--blue'), getCss('--blue-glow'));
+    drawFlatPortal(shaftX, shaftTop, getCss('--orange'), getCss('--orange-glow'));
+
+    const loopIndex = Math.floor(hReal / loopMeters);
+    const frac = (hReal / loopMeters) - loopIndex;
+    const ballY = shaftTop + frac * (shaftBottom - shaftTop);
+
+    if (loopIndex !== lastLoopIndex && lastLoopIndex !== -1) {
+      loopPulseTime = performance.now();
+    }
+    lastLoopIndex = loopIndex;
+
+    if (state !== 'idle') {
+      ctx.fillStyle = getCss('--ink');
+      ctx.beginPath();
+      ctx.arc(shaftX, ballY, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (loopPulseTime !== null) {
+      const elapsed = performance.now() - loopPulseTime;
+      const dur = 400;
+      if (elapsed < dur) {
+        const p = elapsed / dur;
+        ctx.beginPath();
+        ctx.arc(shaftX, shaftTop, 8 + p * 20, 0, Math.PI * 2);
+        ctx.strokeStyle = getCss('--orange');
+        ctx.globalAlpha = 1 - p;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    ctx.fillStyle = getCss('--ink-soft');
+    ctx.font = '11px "IBM Plex Sans", sans-serif';
+    ctx.fillText('1 vuelta = ' + loopMeters + ' m reales', shaftX - 62, shaftBottom + 22);
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getCss('--panel');
+    ctx.fillRect(0, 0, W, H);
+
+    drawLoopVisual(currentHReal);
+
+    drawChartFrame(chartSpeed, 'Velocidad vs. tiempo', 'm/s', speedYMax.toFixed(0));
+    drawChartFrame(chartHeight, 'Distancia caída vs. tiempo', 'm', heightYMax.toFixed(0));
+
+    // línea de referencia: velocidad terminal
+    ctx.strokeStyle = getCss('--ink-soft');
+    ctx.setLineDash([2, 3]);
+    ctx.lineWidth = 1;
+    const vtPt = mapPt(chartSpeed, Ttotal, speedYMax, 0, vTerm);
+    ctx.beginPath();
+    ctx.moveTo(chartSpeed.x, vtPt.y);
+    ctx.lineTo(chartSpeed.x + chartSpeed.w, vtPt.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    drawCurve(chartSpeed, Ttotal, speedYMax, idealSpeedPts, getCss('--orange'), true);
+    drawCurve(chartSpeed, Ttotal, speedYMax, realSpeedPts, getCss('--blue'), false);
+
+    drawCurve(chartHeight, Ttotal, heightYMax, idealHeightPts, getCss('--orange'), true);
+    drawCurve(chartHeight, Ttotal, heightYMax, realHeightPts, getCss('--blue'), false);
+
+    // aviso "fuera de escala" si la curva ideal ya se salió
+    ctx.fillStyle = getCss('--orange');
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    if (idealSpeedPts.length && idealSpeedPts[idealSpeedPts.length - 1].v >= speedYMax * 0.98) {
+      ctx.fillText('↑ sigue subiendo, fuera de escala', chartSpeed.x + chartSpeed.w - 190, chartSpeed.y + 14);
+    }
+    if (idealHeightPts.length && idealHeightPts[idealHeightPts.length - 1].v >= heightYMax * 0.98) {
+      ctx.fillText('↑ sigue subiendo, fuera de escala', chartHeight.x + chartHeight.w - 190, chartHeight.y + 14);
+    }
+  }
+
+  function draw() { drawScene(); }
+
+  vtSlider.addEventListener('input', () => {
+    vtVal.textContent = vtSlider.value + ' m/s';
+    if (state === 'idle') { recomputeDomain(); draw(); }
+  });
+
+  launchBtn.addEventListener('click', () => {
+    if (state !== 'idle') return;
+    state = 'running';
+    animStart = null;
+    realSpeedPts = [{ t: 0, v: 0 }];
+    idealSpeedPts = [{ t: 0, v: 0 }];
+    realHeightPts = [{ t: 0, v: 0 }];
+    idealHeightPts = [{ t: 0, v: 0 }];
+    note.innerHTML = 'La curva azul (con fricción) se acerca a la línea de velocidad terminal y ya no la cruza. La naranja (sin fricción) no tiene techo — por eso se sale de la gráfica.';
+    setControlsState(true);
+    requestAnimationFrame(step);
+  });
+
+  resetBtn.addEventListener('click', resetAll);
+
+  function step(now) {
+    if (animStart === null) animStart = now;
+    const elapsedReal = (now - animStart) / 1000;
+    const frac = Math.min(elapsedReal / animDuration, 1);
+    const t = frac * Ttotal;
+
+    const vReal = vTerm * (1 - Math.exp(-c * t));
+    const hReal = vTerm * (t - (1 / c) * (1 - Math.exp(-c * t)));
+    const vIdeal = g * t;
+    const hIdeal = 0.5 * g * t * t;
+
+    realSpeedPts.push({ t, v: vReal });
+    realHeightPts.push({ t, v: hReal });
+    currentHReal = hReal;
+    if (vIdeal <= speedYMax * 1.02) idealSpeedPts.push({ t, v: vIdeal });
+    if (hIdeal <= heightYMax * 1.02) idealHeightPts.push({ t, v: hIdeal });
+
+    tVal.textContent = t.toFixed(1) + ' s';
+    vRealVal.textContent = vReal.toFixed(1) + ' m/s';
+    vIdealVal.textContent = vIdeal.toFixed(1) + ' m/s';
+    hRealVal.textContent = hReal.toFixed(0) + ' m';
+    hIdealVal.textContent = hIdeal.toFixed(0) + ' m';
+
+    draw();
+
+    if (frac < 1) {
+      requestAnimationFrame(step);
+    } else {
+      state = 'done';
+      setControlsState(true);
+      punchBox.innerHTML = closingLines[Math.floor(Math.random() * closingLines.length)];
+      punchBox.classList.add('show', 'success');
+      note.innerHTML += ' Al final de la simulación, la velocidad real prácticamente ya no cambia (' + vReal.toFixed(1) + ' m/s, pegada a los ' + vTerm.toFixed(0) + ' m/s de velocidad terminal), mientras la distancia caída sigue aumentando y la versión sin fricción, a estas alturas, ya habría salido de cualquier gráfica razonable.';
+    }
+  }
+
+  vtVal.textContent = vtSlider.value + ' m/s';
+  resetAll();
+})();
+</script>
+</body>
+</html>

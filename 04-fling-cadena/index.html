@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Un bucle que la física no ve gratis, pero tú sí.</title>
+<style>
+  :root {
+    --bg: #EDE7D9;
+    --panel: #FFFFFF;
+    --panel-border: #D8D0BC;
+    --ink: #201C16;
+    --ink-soft: #6B6355;
+    --floor: #C9C0A8;
+    --target-zone: #EDE9DD;
+    --grid-line: rgba(32,28,22,0.06);
+    --blue: #1E7FB8;
+    --blue-glow: rgba(30,127,184,0.35);
+    --orange: #D9611E;
+    --orange-glow: rgba(217,97,30,0.35);
+    --trace: rgba(32,28,22,0.28);
+    --accent-btn: #201C16;
+    --accent-btn-text: #EDE7D9;
+    font-family: "IBM Plex Sans", -apple-system, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181A;
+      --panel: #1F2226;
+      --panel-border: #34383D;
+      --ink: #EDEAE3;
+      --ink-soft: #97928A;
+      --floor: #2A2D31;
+      --target-zone: #4A4E55;
+      --grid-line: rgba(237,234,227,0.06);
+      --blue: #4FB4E8;
+      --blue-glow: rgba(79,180,232,0.35);
+      --orange: #F08A47;
+      --orange-glow: rgba(240,138,71,0.35);
+      --trace: rgba(237,234,227,0.25);
+      --accent-btn: #EDEAE3;
+      --accent-btn-text: #16181A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #16181A;
+    --panel: #1F2226;
+    --panel-border: #34383D;
+    --ink: #EDEAE3;
+    --ink-soft: #97928A;
+    --floor: #2A2D31;
+    --target-zone: #4A4E55;
+    --grid-line: rgba(237,234,227,0.06);
+    --blue: #4FB4E8;
+    --blue-glow: rgba(79,180,232,0.35);
+    --orange: #F08A47;
+    --orange-glow: rgba(240,138,71,0.35);
+    --trace: rgba(237,234,227,0.25);
+    --accent-btn: #EDEAE3;
+    --accent-btn-text: #16181A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body { margin: 0; background: var(--bg); color: var(--ink); padding: 28px 20px 40px; }
+  .app { max-width: 1040px; margin: 0 auto; }
+
+  .back-link {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    margin-bottom: 18px;
+  }
+  .back-link:hover { color: var(--ink); }
+
+  .sim-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .sim-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px 6px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    text-decoration: none;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .sim-pill:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .sim-pill .mini-shape {
+    position: relative;
+    width: 15px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--blue);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sim-pill .mini-shape svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sim-pill .mini-shape path {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.9;
+    stroke: var(--blue);
+  }
+
+  .sim-pill[data-color="orange"] .mini-shape { border-color: var(--orange); }
+  .sim-pill[data-color="orange"] .mini-shape path { stroke: var(--orange); }
+
+  .sim-pill.current {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+    font-weight: 600;
+    cursor: default;
+  }
+  header.nameplate { margin-bottom: 22px; }
+
+  header.nameplate h1 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    line-height: 1.25;
+    margin: 0 0 8px;
+    max-width: 38ch;
+  }
+
+  header.nameplate p {
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  main.stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 760px) { main.stage { grid-template-columns: 1fr; } }
+
+  .canvas-wrap {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .punch-box {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 9px 13px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    display: none;
+    z-index: 5;
+  }
+
+  .punch-box.show { display: block; }
+  .punch-box.success { color: var(--orange); border-color: var(--orange); }
+  .punch-box.fail { color: var(--blue); border-color: var(--blue); }
+
+  canvas { display: block; width: 100%; height: auto; border-radius: 2px; }
+
+  aside.panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+
+  .control label span:last-child {
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--blue); }
+  input[type="range"]:disabled { opacity: 0.5; }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  button.primary { background: var(--accent-btn); color: var(--accent-btn-text); }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--panel-border); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  .readout { border-top: 1px solid var(--panel-border); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .stat { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.88rem; }
+  .stat-label { color: var(--ink-soft); }
+  .stat-value { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.95rem; }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.orange { color: var(--orange); }
+
+  .note { font-size: 0.85rem; line-height: 1.55; color: var(--ink-soft); margin: 0; }
+  .note strong { color: var(--ink); }
+  .note a { color: var(--orange); text-decoration: none; font-weight: 600; }
+  .note a:hover { text-decoration: underline; }
+
+  .explain {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+
+
+</style>
+</head>
+<body>
+<div class="app">
+<a class="back-link" href="../index.html">← Inicio</a>
+<nav class="sim-nav">
+    <a class="sim-pill" data-color="blue" href="../01-conservacion-rapidez/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,10 L34,80 L58,32" /></svg></span>01</a>
+    <a class="sim-pill" data-color="orange" href="../02-trayectorias/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 Q34,8 58,80" /></svg></span>02</a>
+    <a class="sim-pill" data-color="blue" href="../03-esfera-energia/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 L58,18" /></svg></span>03</a>
+    <span class="sim-pill current" data-color="orange"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,12 L34,88" /></svg></span>04</span>
+    <a class="sim-pill" data-color="blue" href="../05-velocidad-terminal/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,6 C34,45 34,55 34,80" /></svg></span>05</a>
+  </nav>
+
+  <header class="nameplate">
+    <h1>Con un salto no llega. Encadenando, sí.</h1>
+    <p>Al otro lado hay una plataforma. Con una sola caída por el bucle, la velocidad no alcanza para cruzar el hueco. Encadena suficientes vueltas antes de liberar el disparo, y la misma habitación pequeña te lleva al otro lado.</p>
+  </header>
+
+  <main class="stage">
+    <div class="canvas-wrap">
+      <div class="punch-box" id="punchBox"></div>
+      <canvas id="sim" width="820" height="440"></canvas>
+    </div>
+
+    <aside class="panel">
+      <div class="control">
+        <label>Separación entre portales <span id="dVal">3.0 m</span></label>
+        <input type="range" id="dSlider" min="1" max="6" step="0.5" value="3">
+      </div>
+      <div class="control">
+        <label>Número de vueltas <span id="nVal">6</span></label>
+        <input type="range" id="nSlider" min="1" max="12" step="1" value="6">
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" id="launchBtn">Encadenar y liberar</button>
+        <button class="secondary" id="resetBtn">Reiniciar</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat">
+          <span class="stat-label">Un solo salto llegaría a</span>
+          <span class="stat-value" id="singleVal">6.0 m</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Plataforma (bandera)</span>
+          <span class="stat-value orange" id="targetVal">14.0 – 17.0 m</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Vueltas completadas</span>
+          <span class="stat-value" id="passVal">0 / 6</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Velocidad acumulada</span>
+          <span class="stat-value blue" id="vVal">— m/s</span>
+        </div>
+        <div class="stat" id="eqRow" style="display:none;">
+          <span class="stat-label">Altura equivalente (caída única)</span>
+          <span class="stat-value orange" id="eqVal">— m</span>
+        </div>
+        <div class="stat" id="rangeRow" style="display:none;">
+          <span class="stat-label">Alcance tras liberar</span>
+          <span class="stat-value" id="rangeVal">— m</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="explain">
+    <p class="note" id="note">Un solo salto llega a 6.0 m. La plataforma está más allá. Ajusta separación y vueltas, y pulsa «Encadenar y liberar» para intentar cruzar.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('sim');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const dSlider = document.getElementById('dSlider');
+  const nSlider = document.getElementById('nSlider');
+  const dVal = document.getElementById('dVal');
+  const nVal = document.getElementById('nVal');
+  const passVal = document.getElementById('passVal');
+  const vVal = document.getElementById('vVal');
+  const singleVal = document.getElementById('singleVal');
+  const targetVal = document.getElementById('targetVal');
+  const eqRow = document.getElementById('eqRow');
+  const eqVal = document.getElementById('eqVal');
+  const rangeRow = document.getElementById('rangeRow');
+  const rangeVal = document.getElementById('rangeVal');
+  const note = document.getElementById('note');
+  const punchBox = document.getElementById('punchBox');
+  const launchBtn = document.getElementById('launchBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const g = 9.8;
+  const worldH = 16;
+  const worldW = 65;
+  const scale = H / worldH;
+  const scaleX = W / worldW;
+
+  const floorY = H - 24;
+  const shaftX = 110; // px, columna donde viven los dos portales alineados
+  const targetWidthM = 3; // ancho de la plataforma — exige precisión, no solo alcance mínimo
+  let targetStartM = 14;
+  let targetStartPx = shaftX + targetStartM * scaleX;
+  let targetEndPx = targetStartPx + targetWidthM * scaleX;
+
+  function randomizeTarget() {
+    targetStartM = Math.round((10 + Math.random() * 8) * 2) / 2; // 10–18 m
+    targetStartPx = shaftX + targetStartM * scaleX;
+    targetEndPx = targetStartPx + targetWidthM * scaleX;
+    targetVal.textContent = targetStartM.toFixed(1) + ' – ' + (targetStartM + targetWidthM).toFixed(1) + ' m';
+  }
+
+  let D = parseFloat(dSlider.value);
+  let N = parseInt(nSlider.value, 10);
+
+  let state = 'idle'; // idle | looping | releasing | landed
+  let ceilingY = floorY - D * scale;
+
+  let passIndex = 0;
+  let vCurrent = 0;
+  let passVStart = 0, passVEnd = 0, passDuration = 0, passElapsed = 0;
+
+  let ball = { x: shaftX, y: ceilingY };
+  let flyVX = 0, flyVY = 0;
+  let trace = [];
+  let landMarker = null;
+  let landTime = null;
+  let lastT = null;
+  const timeScale = 0.55;
+
+  const successLines = [
+    'Plataforma alcanzada. La energía no salió de ninguna parte especial: salió de usted, empujando la puerta cada vez que caía.',
+    'Logro desbloqueado: «Batería de gravedad». Técnicamente no ha inventado nada; la sala ya tenía esa altura, solo la reutilizó varias veces.',
+    'Cálculo confirmado. Podría haber caído esa distancia una sola vez, desde mucho más arriba. Prefirió complicarse, y funcionó.',
+    'Cruce registrado. La física no acumula intereses, pero esta vez casi lo parece.',
+    'Objetivo alcanzado. El comité valora la eficiencia energética. No a usted en particular.'
+  ];
+
+  const failLines = [
+    'No ha llegado. El abismo agradece la ofrenda. Pruebe con más vueltas, o con más separación, o con ambas.',
+    'Cálculo confirmado: velocidad insuficiente. La plataforma sigue ahí, esperando pacientemente su próximo intento.',
+    'Caída registrada, en el sentido menos deseado. El comité sugiere reconsiderar el número de vueltas.',
+    'No ha cruzado. Al menos la energía acumulada no se ha desperdiciado del todo: ha servido de demostración.',
+    'Si parece imposible, revise primero sus suposiciones.',
+    'La simulación no está diseñada para confirmar sus teorías previas.'
+  ];
+
+  function setControlsState(running) {
+    launchBtn.classList.toggle('primary', !running);
+    launchBtn.classList.toggle('secondary', running);
+    launchBtn.disabled = running;
+    resetBtn.classList.toggle('primary', running);
+    resetBtn.classList.toggle('secondary', !running);
+    dSlider.disabled = running;
+    nSlider.disabled = running;
+  }
+
+  function resetAll() {
+    state = 'idle';
+    D = parseFloat(dSlider.value);
+    N = parseInt(nSlider.value, 10);
+    ceilingY = floorY - D * scale;
+    passIndex = 0;
+    vCurrent = 0;
+    ball = { x: shaftX, y: ceilingY };
+    flyVX = 0; flyVY = 0;
+    trace = [];
+    landMarker = null;
+    landTime = null;
+    passVal.textContent = '0 / ' + N;
+    vVal.textContent = '— m/s';
+    eqRow.style.display = 'none';
+    rangeRow.style.display = 'none';
+    punchBox.classList.remove('show', 'success', 'fail');
+    note.innerHTML = 'Un solo salto llega a ' + (2 * D).toFixed(1) + ' m. La plataforma está entre ' + targetStartM.toFixed(1) + ' y ' + (targetStartM + targetWidthM).toFixed(1) + ' m. Ajusta separación y vueltas, y pulsa «Encadenar y liberar» para intentar cruzar.';
+    setControlsState(false);
+    draw();
+  }
+
+  function getCss(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  function drawGrid() {
+    ctx.strokeStyle = getCss('--grid-line');
+    ctx.lineWidth = 1;
+    for (let m = 0; m <= worldH; m++) {
+      const y = H - m * scale;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+  }
+
+  function drawFlatPortal(px, py, color, glow) {
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 26, 8, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getCss('--panel');
+    ctx.fillRect(0, 0, W, H);
+    drawGrid();
+
+    // suelo bajo el bucle
+    ctx.fillStyle = getCss('--floor');
+    ctx.fillRect(0, floorY, shaftX + 60, H - floorY);
+
+    // abismo (zona sin suelo entre el bucle y la plataforma)
+    ctx.fillStyle = getCss('--grid-line');
+    ctx.fillRect(shaftX + 60, floorY, targetStartPx - (shaftX + 60), H - floorY);
+
+    // plataforma objetivo (acotada, no infinita — exige precisión en ambos extremos)
+    ctx.fillStyle = getCss('--target-zone');
+    ctx.fillRect(targetStartPx, floorY, targetEndPx - targetStartPx, H - floorY);
+    ctx.strokeStyle = getCss('--orange');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(targetStartPx, floorY);
+    ctx.lineTo(targetEndPx, floorY);
+    ctx.stroke();
+
+    // abismo tras la plataforma
+    ctx.fillStyle = getCss('--grid-line');
+    ctx.fillRect(targetEndPx, floorY, W - targetEndPx, H - floorY);
+
+    // marca de la plataforma
+    ctx.strokeStyle = getCss('--orange');
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(targetStartPx, floorY);
+    ctx.lineTo(targetStartPx, floorY - 50);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = getCss('--orange');
+    ctx.beginPath();
+    ctx.moveTo(targetStartPx, floorY - 50);
+    ctx.lineTo(targetStartPx + 16, floorY - 44);
+    ctx.lineTo(targetStartPx, floorY - 38);
+    ctx.closePath();
+    ctx.fill();
+
+    // plataforma del techo (pequeña, solo sobre la columna)
+    ctx.fillStyle = getCss('--floor');
+    ctx.fillRect(shaftX - 50, ceilingY - 10, 100, 10);
+
+    // guía vertical entre los dos portales
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = getCss('--ink-soft');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(shaftX, ceilingY);
+    ctx.lineTo(shaftX, floorY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    drawFlatPortal(shaftX, floorY, getCss('--blue'), getCss('--blue-glow'));
+    drawFlatPortal(shaftX, ceilingY, getCss('--orange'), getCss('--orange-glow'));
+
+    // traza del lanzamiento final
+    if (trace.length > 1) {
+      ctx.strokeStyle = getCss('--trace');
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(trace[0].x, trace[0].y);
+      trace.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+
+    // bola
+    ctx.fillStyle = getCss('--ink');
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // pulso de logro
+    if (landMarker && landTime !== null) {
+      const elapsed = performance.now() - landTime;
+      const dur = 900;
+      if (elapsed < dur) {
+        const p = elapsed / dur;
+        ctx.beginPath();
+        ctx.arc(landMarker.x, landMarker.y, 8 + p * 30, 0, Math.PI * 2);
+        ctx.strokeStyle = getCss('--orange');
+        ctx.globalAlpha = 1 - p;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  function draw() { drawScene(); }
+
+  function updateLabels() {
+    dVal.textContent = parseFloat(dSlider.value).toFixed(1) + ' m';
+    nVal.textContent = nSlider.value;
+    singleVal.textContent = (2 * parseFloat(dSlider.value)).toFixed(1) + ' m';
+  }
+
+  dSlider.addEventListener('input', () => { updateLabels(); if (state === 'idle') resetAll(); });
+  nSlider.addEventListener('input', () => { updateLabels(); if (state === 'idle') resetAll(); });
+
+  function startPass() {
+    passVStart = vCurrent;
+    passVEnd = Math.sqrt(passVStart * passVStart + 2 * g * D);
+    passDuration = (passVEnd - passVStart) / g;
+    passElapsed = 0;
+    ball = { x: shaftX, y: ceilingY };
+  }
+
+  launchBtn.addEventListener('click', () => {
+    if (state !== 'idle') return;
+    state = 'looping';
+    passIndex = 0;
+    vCurrent = 0;
+    trace = [];
+    landMarker = null;
+    landTime = null;
+    startPass();
+    lastT = null;
+    note.innerHTML = 'Cada caída entrega el objeto al portal del suelo con más velocidad de la que traía la vez anterior — y ese portal lo devuelve, sin coste, al techo para la siguiente vuelta.';
+    setControlsState(true);
+    requestAnimationFrame(step);
+  });
+
+  resetBtn.addEventListener('click', resetAll);
+
+  function step(t) {
+    if (lastT === null) lastT = t;
+    const dtReal = (t - lastT) / 1000;
+    lastT = t;
+
+    if (state === 'looping') {
+      passElapsed += dtReal;
+      const physElapsed = Math.min(passElapsed * timeScale, passDuration);
+      const s = passVStart * physElapsed + 0.5 * g * physElapsed * physElapsed;
+      const frac = D > 0 ? Math.min(s / D, 1) : 1;
+      ball.y = ceilingY + frac * (floorY - ceilingY);
+
+      if (passElapsed * timeScale >= passDuration) {
+        vCurrent = passVEnd;
+        passIndex++;
+        passVal.textContent = passIndex + ' / ' + N;
+        vVal.textContent = vCurrent.toFixed(2) + ' m/s';
+
+        if (passIndex >= N) {
+          // liberar: el portal del techo gira y redirige la velocidad acumulada hacia la sala
+          state = 'releasing';
+          ball = { x: shaftX, y: ceilingY };
+          flyVX = vCurrent;
+          flyVY = 0;
+          trace = [{ x: ball.x, y: ball.y }];
+          const eq = (vCurrent * vCurrent) / (2 * g);
+          eqVal.textContent = eq.toFixed(1) + ' m';
+          eqRow.style.display = 'flex';
+          note.innerHTML = 'En la última vuelta, el portal del techo se reorienta hacia la sala en vez de devolver el objeto al suelo. Sale disparado con los <strong>' + vCurrent.toFixed(2) + ' m/s</strong> acumulados — la misma velocidad que daría una caída libre de <strong>' + eq.toFixed(1) + ' m</strong>, aunque el techo real está a solo ' + D.toFixed(1) + ' m.';
+        } else {
+          startPass();
+        }
+      }
+    } else if (state === 'releasing') {
+      const dt = Math.min(dtReal * timeScale, 0.033);
+      flyVY += g * dt;
+      ball.x += flyVX * scaleX * dt;
+      ball.y += flyVY * scale * dt;
+      trace.push({ x: ball.x, y: ball.y });
+
+      if (ball.y >= floorY) {
+        ball.y = floorY;
+        state = 'landed';
+        const range = (ball.x - shaftX) / scaleX;
+        const success = ball.x >= targetStartPx && ball.x <= targetEndPx;
+        rangeVal.textContent = range.toFixed(1) + ' m';
+        rangeRow.style.display = 'flex';
+        landMarker = { x: ball.x, y: floorY };
+        landTime = performance.now();
+        const lines = success ? successLines : failLines;
+        punchBox.textContent = lines[Math.floor(Math.random() * lines.length)];
+        punchBox.classList.add('show');
+        punchBox.classList.toggle('success', success);
+        punchBox.classList.toggle('fail', !success);
+        note.innerHTML += success
+          ? ' Aterrizó a ' + range.toFixed(1) + ' m, sobre la plataforma — la distancia que un solo salto (' + (2 * D).toFixed(1) + ' m) nunca habría alcanzado.'
+          : (range > targetStartM
+              ? ' Se pasó de largo, a ' + range.toFixed(1) + ' m (la plataforma termina en ' + (targetStartM + targetWidthM).toFixed(1) + ' m). Prueba con menos vueltas o menos separación.'
+              : ' Cayó a ' + range.toFixed(1) + ' m, antes de llegar a la plataforma (empieza en ' + targetStartM.toFixed(1) + ' m). Prueba con más vueltas o más separación.');
+        requestAnimationFrame(pulseLoop);
+      }
+    }
+
+    draw();
+    if (state === 'looping' || state === 'releasing') {
+      requestAnimationFrame(step);
+    }
+  }
+
+  function pulseLoop() {
+    draw();
+    if (landTime !== null && performance.now() - landTime < 900) {
+      requestAnimationFrame(pulseLoop);
+    }
+  }
+
+  randomizeTarget();
+  updateLabels();
+  resetAll();
+})();
+</script>
+</body>
+</html>

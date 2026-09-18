@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La magnitud de la velocidad no cambia. La dirección sí.</title>
+<style>
+  :root {
+    --bg: #EDE7D9;
+    --panel: #FFFFFF;
+    --panel-border: #D8D0BC;
+    --ink: #201C16;
+    --ink-soft: #6B6355;
+    --floor: #C9C0A8;
+    --target-zone: #EDE9DD;
+    --grid-line: rgba(32,28,22,0.06);
+    --blue: #1E7FB8;
+    --blue-glow: rgba(30,127,184,0.35);
+    --orange: #D9611E;
+    --orange-glow: rgba(217,97,30,0.35);
+    --trace: rgba(32,28,22,0.28);
+    --accent-btn: #201C16;
+    --accent-btn-text: #EDE7D9;
+    font-family: "IBM Plex Sans", -apple-system, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181A;
+      --panel: #1F2226;
+      --panel-border: #34383D;
+      --ink: #EDEAE3;
+      --ink-soft: #97928A;
+      --floor: #2A2D31;
+      --target-zone: #4A4E55;
+      --grid-line: rgba(237,234,227,0.06);
+      --blue: #4FB4E8;
+      --blue-glow: rgba(79,180,232,0.35);
+      --orange: #F08A47;
+      --orange-glow: rgba(240,138,71,0.35);
+      --trace: rgba(237,234,227,0.25);
+      --accent-btn: #EDEAE3;
+      --accent-btn-text: #16181A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #16181A;
+    --panel: #1F2226;
+    --panel-border: #34383D;
+    --ink: #EDEAE3;
+    --ink-soft: #97928A;
+    --floor: #2A2D31;
+    --target-zone: #4A4E55;
+    --grid-line: rgba(237,234,227,0.06);
+    --blue: #4FB4E8;
+    --blue-glow: rgba(79,180,232,0.35);
+    --orange: #F08A47;
+    --orange-glow: rgba(240,138,71,0.35);
+    --trace: rgba(237,234,227,0.25);
+    --accent-btn: #EDEAE3;
+    --accent-btn-text: #16181A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 28px 20px 40px;
+  }
+
+  .app {
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    margin-bottom: 18px;
+  }
+  .back-link:hover { color: var(--ink); }
+
+  .sim-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .sim-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px 6px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    text-decoration: none;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .sim-pill:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .sim-pill .mini-shape {
+    position: relative;
+    width: 15px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--blue);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sim-pill .mini-shape svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sim-pill .mini-shape path {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.9;
+    stroke: var(--blue);
+  }
+
+  .sim-pill[data-color="orange"] .mini-shape { border-color: var(--orange); }
+  .sim-pill[data-color="orange"] .mini-shape path { stroke: var(--orange); }
+
+  .sim-pill.current {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+    font-weight: 600;
+    cursor: default;
+  }
+
+  header.nameplate {
+    margin-bottom: 22px;
+  }
+
+  header.nameplate h1 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    line-height: 1.25;
+    margin: 0 0 8px;
+    max-width: 34ch;
+  }
+
+  header.nameplate p {
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  main.stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 760px) {
+    main.stage { grid-template-columns: 1fr; }
+  }
+
+  .canvas-wrap {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .punch-box {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 9px 13px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    display: none;
+    z-index: 5;
+  }
+
+  .punch-box.show { display: block; }
+  .punch-box.success { color: var(--orange); border-color: var(--orange); }
+  .punch-box.fail { color: var(--blue); border-color: var(--blue); }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 2px;
+  }
+
+  aside.panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+
+  .control label span:last-child {
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--blue);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  button.primary {
+    background: var(--accent-btn);
+    color: var(--accent-btn-text);
+  }
+
+  button.secondary {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--panel-border);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .readout {
+    border-top: 1px solid var(--panel-border);
+    padding-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.88rem;
+  }
+
+  .stat-label { color: var(--ink-soft); }
+
+  .stat-value {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.orange { color: var(--orange); }
+
+  .note {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .note strong { color: var(--ink); }
+  .note a { color: var(--orange); text-decoration: none; font-weight: 600; }
+  .note a:hover { text-decoration: underline; }
+
+  .explain {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+
+
+</style>
+</head>
+<body>
+<div class="app">
+<a class="back-link" href="../index.html">← Inicio</a>
+<nav class="sim-nav">
+    <span class="sim-pill current" data-color="blue"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,10 L34,80 L58,32" /></svg></span>01</span>
+    <a class="sim-pill" data-color="orange" href="../02-trayectorias/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 Q34,8 58,80" /></svg></span>02</a>
+    <a class="sim-pill" data-color="blue" href="../03-esfera-energia/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 L58,18" /></svg></span>03</a>
+    <a class="sim-pill" data-color="orange" href="../04-fling-cadena/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,12 L34,88" /></svg></span>04</a>
+    <a class="sim-pill" data-color="blue" href="../05-velocidad-terminal/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,6 C34,45 34,55 34,80" /></svg></span>05</a>
+  </nav>
+
+  <header class="nameplate">
+    <h1>La magnitud de la velocidad no cambia. La dirección sí.</h1>
+    <p>Suelta el objeto, míralo entrar por el portal azul y salir por el naranja, y comprueba qué se mantiene igual entre la entrada y la salida.</p>
+  </header>
+
+  <main class="stage">
+    <div class="canvas-wrap">
+      <div class="punch-box" id="punchBox"></div>
+      <canvas id="sim" width="760" height="480"></canvas>
+    </div>
+
+    <aside class="panel">
+      <div class="control">
+        <label>Altura de caída <span id="hVal">6.0 m</span></label>
+        <input type="range" id="hSlider" min="1" max="15" step="0.5" value="6">
+      </div>
+      <div class="control">
+        <label>Altura del portal de salida <span id="wVal">3.0 m</span></label>
+        <input type="range" id="wSlider" min="0" max="8" step="0.5" value="3">
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" id="launchBtn">Soltar objeto</button>
+        <button class="secondary" id="resetBtn">Reiniciar</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat">
+          <span class="stat-label">Velocidad al entrar</span>
+          <span class="stat-value blue" id="vIn">— m/s</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Velocidad al salir</span>
+          <span class="stat-value orange" id="vOut">— m/s</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Dirección al entrar</span>
+          <span class="stat-value">vertical ↓</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Dirección al salir</span>
+          <span class="stat-value">horizontal →</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Distancia a la bandera</span>
+          <span class="stat-value orange" id="targetVal">— m</span>
+        </div>
+        <div class="stat" id="distStatRow" style="display:none;">
+          <span class="stat-label">Distancia recorrida tras salir</span>
+          <span class="stat-value" id="distVal">— m</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="explain">
+    <p class="note" id="note">Ajusta la altura y pulsa «Soltar objeto» para ver la trayectoria.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('sim');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const hSlider = document.getElementById('hSlider');
+  const wSlider = document.getElementById('wSlider');
+  const hVal = document.getElementById('hVal');
+  const wVal = document.getElementById('wVal');
+  const vInEl = document.getElementById('vIn');
+  const vOutEl = document.getElementById('vOut');
+  const distStatRow = document.getElementById('distStatRow');
+  const distVal = document.getElementById('distVal');
+  const targetVal = document.getElementById('targetVal');
+  const note = document.getElementById('note');
+  const punchBox = document.getElementById('punchBox');
+  const launchBtn = document.getElementById('launchBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const g = 9.8;
+  const worldH = 16;      // meters mapped to canvas height
+  const worldW = 26;      // meters mapped to canvas width
+  const scale = H / worldH; // px per meter (vertical)
+  const scaleX = W / worldW;
+
+  const floorY = H - 24;
+  const portalAx = 150;          // px, drop portal (floor)
+  const wallX = W - 100;          // px, borde izquierdo del muro
+  const wallPortalX = wallX + 55; // centro del portal naranja, pegado al marco derecho pero con aire
+
+  const targetToleranceM = 0.8; // precisión exigida para dar por bueno el aterrizaje
+  let targetDistM = 10;
+  let targetXpx = wallPortalX - targetDistM * scaleX;
+
+  function randomizeTarget() {
+    const safetyPx = 110; // margen mínimo entre la zona y el portal de entrada
+    const maxDistM = (wallPortalX - portalAx - safetyPx) / scaleX;
+    targetDistM = Math.round((5 + Math.random() * (maxDistM - 5)) * 2) / 2;
+    targetXpx = wallPortalX - targetDistM * scaleX;
+    targetVal.textContent = targetDistM.toFixed(1) + ' m';
+  }
+
+  let h = parseFloat(hSlider.value);
+  let wallH = parseFloat(wSlider.value);
+
+  let state = 'idle'; // idle | falling1 | flying2 | landed
+  let ball = { x: portalAx, y: floorY - h * scale };
+  let vy1 = 0;         // vertical speed during first fall
+  let vExit = 0;        // horizontal speed after exit
+  let flyVX = 0, flyVY = 0;
+  let flyX = 0, flyY = 0;
+  let trace1 = [];
+  let trace2 = [];
+  let landMarker = null;
+  let landTime = null;
+  let lastT = null;
+  const timeScale = 0.55; // slow motion factor for legibility
+
+  const successLines = [
+    'Logro desbloqueado: «Encestar la bolita». El comité científico esperaba más, pero se conforma.',
+    'Prueba superada. Nivel de entusiasmo del sistema ante su hazaña: el mínimo legal exigido.',
+    'La velocidad se conservó con precisión perfecta. Su mérito en el proceso, en cambio, es difícil de calcular.',
+    'Cálculo confirmado. Puede considerarlo un logro personal: la física no necesitaba su intervención para funcionar.',
+    'Enhorabuena. Ha completado una tarea que un objeto en caída libre resuelve solo, sin supervisión humana.',
+    'No es magia. Es mecánica. Aunque visualmente no ayude.'
+  ];
+
+  const failLines = [
+    'No ha alcanzado la bandera. La física funcionó exactamente igual; el objetivo, no.',
+    'Cálculo confirmado: la bandera sigue donde estaba. Ajuste la altura o la del portal, no la actitud.',
+    'Fallo registrado. El objeto conservó la velocidad a la perfección; usted, la puntería, no tanto.',
+    'Objetivo no alcanzado. El comité sugiere revisar las cifras antes que las intenciones.'
+  ];
+
+  function setControlsState(running) {
+    // Cuando la simulación está corriendo (o ya aterrizó), "Reiniciar" pasa
+    // a ser la acción destacada, para dejar claro qué hay que pulsar.
+    launchBtn.classList.toggle('primary', !running);
+    launchBtn.classList.toggle('secondary', running);
+    launchBtn.disabled = running;
+    resetBtn.classList.toggle('primary', running);
+    resetBtn.classList.toggle('secondary', !running);
+  }
+
+  function resetBall() {
+    state = 'idle';
+    ball = { x: portalAx, y: floorY - h * scale };
+    vy1 = 0;
+    trace1 = [];
+    trace2 = [];
+    landMarker = null;
+    landTime = null;
+    distStatRow.style.display = 'none';
+    punchBox.classList.remove('show', 'success', 'fail');
+    vInEl.textContent = '— m/s';
+    vOutEl.textContent = '— m/s';
+    note.innerHTML = 'Ajusta la altura y pulsa «Soltar objeto» para ver la trayectoria.';
+    setControlsState(false);
+    draw();
+  }
+
+  function drawGrid() {
+    ctx.strokeStyle = getCss('--grid-line');
+    ctx.lineWidth = 1;
+    for (let m = 0; m <= worldH; m++) {
+      const y = H - m * scale;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+  }
+
+  function getCss(varName) {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
+
+  function drawPortal(px, py, color, glow, vertical) {
+    ctx.save();
+    ctx.translate(px, py);
+    if (!vertical) ctx.rotate(0);
+    const rx = vertical ? 8 : 26;
+    const ry = vertical ? 26 : 8;
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getCss('--panel');
+    ctx.fillRect(0, 0, W, H);
+    drawGrid();
+
+    // floor
+    ctx.fillStyle = getCss('--floor');
+    ctx.fillRect(0, floorY, W, H - floorY);
+
+    // wall (right)
+    ctx.fillStyle = getCss('--floor');
+    ctx.fillRect(wallX, 0, W - wallX, floorY);
+
+    // portal A (floor, blue) - drawn as flattened ellipse on floor
+    drawPortal(portalAx, floorY, getCss('--blue'), getCss('--blue-glow'), false);
+
+    // portal B (wall, orange) - vertical ellipse on wall
+    const wallPortalY = floorY - wallH * scale;
+    drawPortal(wallPortalX, wallPortalY, getCss('--orange'), getCss('--orange-glow'), true);
+
+    // dashed guide for drop height
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = getCss('--ink-soft');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(portalAx, floorY - h * scale);
+    ctx.lineTo(portalAx, floorY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // franja de tolerancia (zona de acierto), centrada en la bandera
+    const zoneStartPx = targetXpx - targetToleranceM * scaleX;
+    const zoneEndPx = targetXpx + targetToleranceM * scaleX;
+    ctx.fillStyle = getCss('--target-zone');
+    ctx.fillRect(zoneStartPx, floorY, zoneEndPx - zoneStartPx, H - floorY);
+    ctx.strokeStyle = getCss('--orange');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(zoneStartPx, floorY);
+    ctx.lineTo(zoneEndPx, floorY);
+    ctx.stroke();
+
+    // bandera del objetivo
+    ctx.strokeStyle = getCss('--orange');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(targetXpx, floorY);
+    ctx.lineTo(targetXpx, floorY - 42);
+    ctx.stroke();
+    ctx.fillStyle = getCss('--orange');
+    ctx.beginPath();
+    ctx.moveTo(targetXpx, floorY - 42);
+    ctx.lineTo(targetXpx + 15, floorY - 36);
+    ctx.lineTo(targetXpx, floorY - 30);
+    ctx.closePath();
+    ctx.fill();
+
+    // traces
+    ctx.strokeStyle = getCss('--trace');
+    ctx.lineWidth = 2;
+    if (trace1.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(trace1[0].x, trace1[0].y);
+      trace1.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+    if (trace2.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(trace2[0].x, trace2[0].y);
+      trace2.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+
+    // ball
+    ctx.fillStyle = getCss('--ink');
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // pulso de logro al aterrizar
+    if (landMarker && landTime !== null) {
+      const elapsed = performance.now() - landTime;
+      const dur = 900;
+      if (elapsed < dur) {
+        const p = elapsed / dur;
+        ctx.beginPath();
+        ctx.arc(landMarker.x, landMarker.y, 8 + p * 30, 0, Math.PI * 2);
+        ctx.strokeStyle = getCss('--orange');
+        ctx.globalAlpha = 1 - p;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  function draw() { drawScene(); }
+
+  function updateLabels() {
+    hVal.textContent = h.toFixed(1) + ' m';
+    wVal.textContent = wallH.toFixed(1) + ' m';
+  }
+
+  hSlider.addEventListener('input', () => {
+    h = parseFloat(hSlider.value);
+    updateLabels();
+    if (state === 'idle') resetBall();
+  });
+
+  wSlider.addEventListener('input', () => {
+    wallH = parseFloat(wSlider.value);
+    updateLabels();
+    if (state === 'idle') resetBall();
+  });
+
+  launchBtn.addEventListener('click', () => {
+    if (state !== 'idle') return;
+    state = 'falling1';
+    ball = { x: portalAx, y: floorY - h * scale };
+    vy1 = 0;
+    trace1 = [{ x: ball.x, y: ball.y }];
+    trace2 = [];
+    lastT = null;
+    setControlsState(true);
+    requestAnimationFrame(step);
+  });
+
+  resetBtn.addEventListener('click', resetBall);
+
+  function step(t) {
+    if (lastT === null) lastT = t;
+    let dt = ((t - lastT) / 1000) * timeScale;
+    dt = Math.min(dt, 0.033);
+    lastT = t;
+
+    if (state === 'falling1') {
+      vy1 += g * dt;
+      ball.y += vy1 * scale * dt;
+      trace1.push({ x: ball.x, y: ball.y });
+
+      if (ball.y >= floorY) {
+        // reached portal A: compute entry speed
+        const vEntry = vy1; // m/s
+        vInEl.textContent = vEntry.toFixed(2) + ' m/s';
+
+        // teleport to portal B, exit horizontally at same speed
+        vExit = vEntry;
+        vOutEl.textContent = vExit.toFixed(2) + ' m/s';
+
+        const wallPortalY = floorY - wallH * scale;
+        ball = { x: wallPortalX, y: wallPortalY };
+        flyVX = -vExit; // sale hacia la sala (izquierda), no contra el muro
+        flyVY = 0;
+        trace2 = [{ x: ball.x, y: ball.y }];
+        state = 'flying2';
+
+        note.innerHTML = 'La <strong>magnitud de la velocidad</strong> es idéntica a la entrada y a la salida: ' + vExit.toFixed(2) + ' m/s. La <strong>dirección</strong>, en cambio, ha cambiado por completo, de caída vertical a movimiento horizontal. El portal no añade velocidad: transforma la dirección del movimiento según la orientación de las superficies conectadas.';
+      }
+    } else if (state === 'flying2') {
+      flyVY += g * dt;
+      ball.x += flyVX * scaleX * dt;
+      ball.y += flyVY * scale * dt;
+      trace2.push({ x: ball.x, y: ball.y });
+
+      if (ball.y >= floorY || ball.x <= 5) {
+        state = 'landed';
+        const dist = Math.abs(wallPortalX - ball.x) / scaleX;
+        distVal.textContent = dist.toFixed(1) + ' m';
+        distStatRow.style.display = 'flex';
+        landMarker = { x: ball.x, y: Math.min(ball.y, floorY) };
+        landTime = performance.now();
+
+        const errM = Math.abs(dist - targetDistM);
+        const success = errM <= targetToleranceM;
+        punchBox.classList.add('show', success ? 'success' : 'fail');
+        punchBox.classList.toggle('success', success);
+        punchBox.classList.toggle('fail', !success);
+        const linesP = success ? successLines : failLines;
+        const lineP = linesP[Math.floor(Math.random() * linesP.length)];
+        punchBox.textContent = lineP + ' (error: ' + errM.toFixed(2) + ' m)';
+
+        note.innerHTML += ' El objeto aterriza y el ciclo termina — en el juego, si el jugador vuelve a caer sobre un portal en movimiento, esta velocidad conservada es lo que le permite alcanzar plataformas imposibles con un salto normal. <a href="../04-fling-cadena/index.html">→ fling</a>';
+        requestAnimationFrame(pulseLoop);
+      }
+    }
+
+    draw();
+    if (state === 'falling1' || state === 'flying2') {
+      requestAnimationFrame(step);
+    }
+  }
+
+  function pulseLoop(t) {
+    draw();
+    if (landTime !== null && performance.now() - landTime < 900) {
+      requestAnimationFrame(pulseLoop);
+    }
+  }
+
+  randomizeTarget();
+  updateLabels();
+  resetBall();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal_Sim — la física real detrás de Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14161A;
+    --panel: #1D2024;
+    --panel-border: #33373E;
+    --ink: #ECEAE4;
+    --ink-soft: #9A9690;
+    --ink-faint: #605C56;
+    --blue: #4FB4E8;
+    --blue-glow: rgba(79,180,232,0.55);
+    --orange: #F08A47;
+    --orange-glow: rgba(240,138,71,0.55);
+    --accent-btn: #ECEAE4;
+    --accent-btn-text: #14161A;
+    font-family: "Rajdhani", -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ============ PANTALLA 1: PUERTA / PORTAL ============ */
+  .gate {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    overflow: hidden;
+    transition: filter 0.5s ease;
+  }
+
+  .gate::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(var(--panel-border) 1px, transparent 1px) 0 0 / 100% 42px,
+      linear-gradient(90deg, var(--panel-border) 1px, transparent 1px) 0 0 / 42px 100%;
+    opacity: 0.12;
+    pointer-events: none;
+  }
+
+  .portal-ring {
+    position: relative;
+    width: 200px;
+    height: 300px;
+    border-radius: 50%;
+    border: 5px solid var(--blue);
+    box-shadow: 0 0 40px var(--blue-glow), inset 0 0 40px var(--blue-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    cursor: pointer;
+    transition: transform 0.9s cubic-bezier(.6,0,.9,1), box-shadow 0.9s ease, border-color 0.9s ease, filter 0.9s ease;
+  }
+
+  .portal-ring:hover {
+    box-shadow: 0 0 55px var(--blue-glow), inset 0 0 55px var(--blue-glow);
+  }
+
+  .portal-ring:hover .portal-text {
+    filter: blur(0);
+    opacity: 1;
+  }
+
+  .portal-text {
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: var(--blue);
+    filter: blur(1.5px);
+    opacity: 0.75;
+    max-width: 8ch;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+  }
+
+  .gate-sub {
+    color: var(--ink-soft);
+    font-size: 1rem;
+    margin: 0 0 26px;
+    transition: opacity 0.4s ease;
+  }
+
+  .gate-btn {
+    font-family: "Share Tech Mono", monospace;
+    background: transparent;
+    border: 1px solid var(--blue);
+    color: var(--blue);
+    padding: 12px 26px;
+    font-size: 0.88rem;
+    letter-spacing: 0.05em;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .gate-btn:hover { background: var(--blue); color: var(--bg); }
+
+  .gate-disclaimer {
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    margin: 12px 0 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .skip-btn { display: none; }
+
+  .flash {
+    position: fixed;
+    inset: 0;
+    background: var(--blue);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  /* Estado activado (al pulsar "atravesar portal") */
+  .gate.activating .portal-ring {
+    transform: scale(6);
+    box-shadow: 0 0 120px var(--blue-glow), inset 0 0 120px var(--blue-glow);
+    filter: brightness(1.6);
+  }
+
+  .gate.activating .gate-sub,
+  .gate.activating .gate-btn,
+  .gate.activating .gate-disclaimer {
+    opacity: 0;
+  }
+
+  .gate.activating { filter: blur(6px); }
+
+  .flash.flashing {
+    animation: flashPulse 0.5s ease forwards;
+  }
+
+  @keyframes flashPulse {
+    0% { opacity: 0; }
+    45% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ============ PANTALLA 2: LANDING PRINCIPAL ============ */
+  .main { opacity: 0; animation: fadeIn 0.6s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .app { max-width: 1000px; margin: 0 auto; padding: 56px 20px 60px; }
+
+  .hero { margin-bottom: 40px; }
+
+  .hero .kicker {
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 12px;
+  }
+
+  .hero h1 {
+    font-family: "Audiowide", sans-serif;
+    font-weight: 400;
+    font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+    line-height: 1.35;
+    margin: 0 0 16px;
+    max-width: 24ch;
+  }
+
+  .hero p.lead {
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .stance {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--panel-border);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  @media (max-width: 720px) { .stance { grid-template-columns: 1fr; } }
+
+  .stance .cell {
+    background: var(--panel);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stance .cell h2 {
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+  }
+
+  .stance .cell p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .triptych {
+    text-align: center;
+    margin: 56px 0 40px;
+    font-family: "Share Tech Mono", monospace;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    line-height: 1.9;
+  }
+
+  .triptych strong { color: var(--ink); }
+
+  /* ---- Cinco portales ---- */
+  .portal-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-top: 10px;
+  }
+
+  @media (max-width: 900px) { .portal-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .portal-grid { grid-template-columns: 1fr; } }
+
+  .portal-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 18px 12px 20px;
+    text-align: center;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+  }
+
+  .portal-card:hover,
+  .portal-card.touch-active {
+    transform: translateY(-3px);
+  }
+
+  .portal-card[data-color="blue"]:hover,
+  .portal-card[data-color="blue"].touch-active { border-color: var(--blue); }
+  .portal-card[data-color="orange"]:hover,
+  .portal-card[data-color="orange"].touch-active { border-color: var(--orange); }
+
+  .portal-shape {
+    position: relative;
+    width: 68px;
+    height: 100px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    border: 3px solid var(--blue);
+    box-shadow: 0 0 12px var(--blue-glow);
+    overflow: hidden;
+    transition: box-shadow 0.25s ease;
+    --glow: var(--blue-glow);
+  }
+
+  .portal-card[data-color="orange"] .portal-shape {
+    border-color: var(--orange);
+    box-shadow: 0 0 12px var(--orange-glow);
+    --glow: var(--orange-glow);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .portal-shape { animation: shapeBreathe 3.6s ease-in-out infinite; }
+  }
+
+  @keyframes shapeBreathe {
+    0%, 100% { box-shadow: 0 0 10px var(--glow); }
+    50% { box-shadow: 0 0 17px var(--glow); }
+  }
+
+  .portal-card:hover .portal-shape,
+  .portal-card.touch-active .portal-shape { box-shadow: 0 0 24px currentColor; }
+  .portal-card[data-color="blue"]:hover .portal-shape,
+  .portal-card[data-color="blue"].touch-active .portal-shape { box-shadow: 0 0 24px var(--blue-glow); }
+  .portal-card[data-color="orange"]:hover .portal-shape,
+  .portal-card[data-color="orange"].touch-active .portal-shape { box-shadow: 0 0 24px var(--orange-glow); }
+
+  .ball {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ink);
+    top: 15%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+  }
+
+  .portal-card[data-anim="settle"] .ball {
+    width: 5px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 -9px 9px -2px var(--blue-glow), 0 -17px 13px -4px var(--blue-glow);
+  }
+
+  .ball-trail {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--blue);
+    top: 15%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    z-index: 1;
+  }
+
+  .path-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .path-svg path {
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    opacity: 0.85;
+  }
+
+  .portal-card[data-color="blue"] .path-svg path { stroke: var(--blue); }
+  .portal-card[data-color="orange"] .path-svg path { stroke: var(--orange); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .path-svg path {
+      stroke-dasharray: 160;
+      stroke-dashoffset: 160;
+      transition: stroke-dashoffset 0.9s ease;
+    }
+    .portal-card:hover .path-svg path,
+    .portal-card.touch-active .path-svg path { stroke-dashoffset: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .path-svg path { opacity: 0.35; }
+    .portal-card:hover .path-svg path,
+    .portal-card.touch-active .path-svg path { opacity: 0.9; }
+  }
+
+  .portal-num {
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+
+  .portal-name {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    line-height: 1.25;
+    margin: 0 0 8px;
+  }
+
+  .portal-desc {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  }
+
+  .portal-enter {
+    display: inline-block;
+    margin-top: 10px;
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.75rem;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .portal-card[data-color="blue"] .portal-enter { color: var(--blue); }
+  .portal-card[data-color="orange"] .portal-enter { color: var(--orange); }
+
+  .portal-card:hover .portal-desc,
+  .portal-card.touch-active .portal-desc {
+    max-height: 80px;
+    opacity: 1;
+    margin-top: 4px;
+  }
+
+  .portal-card:hover .portal-enter,
+  .portal-card.touch-active .portal-enter {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .portal-card[data-anim="fall"]:hover .ball,
+    .portal-card[data-anim="fall"].touch-active .ball { animation: ballFall 1.3s ease-in-out; }
+    .portal-card[data-anim="arc"]:hover .ball,
+    .portal-card[data-anim="arc"].touch-active .ball { animation: ballArc 1.3s ease-in-out; }
+    .portal-card[data-anim="loop"]:hover .ball,
+    .portal-card[data-anim="loop"].touch-active .ball { animation: ballSnap 0.5s steps(1) 5 alternate; }
+    .portal-card[data-anim="straight"]:hover .ball,
+    .portal-card[data-anim="straight"].touch-active .ball { animation: ballStraight 1.1s linear; }
+    .portal-card[data-anim="settle"]:hover .ball,
+    .portal-card[data-anim="settle"].touch-active .ball { animation: ballSettle 1.4s cubic-bezier(.15,.8,.3,1); }
+  }
+
+  @keyframes ballFall {
+    0% { top: 12%; left: 50%; }
+    55% { top: 82%; left: 50%; }
+    100% { top: 30%; left: 84%; }
+  }
+  @keyframes ballArc {
+    0% { top: 82%; left: 16%; }
+    50% { top: 14%; left: 50%; }
+    100% { top: 82%; left: 84%; }
+  }
+  @keyframes ballSnap {
+    0% { top: 14%; }
+    100% { top: 84%; }
+  }
+  @keyframes ballStraight {
+    0% { top: 80%; left: 12%; }
+    100% { top: 18%; left: 88%; }
+  }
+  @keyframes ballSettle {
+    0% { top: 6%; left: 50%; }
+    45% { top: 58%; left: 50%; }
+    100% { top: 78%; left: 50%; }
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--ink-faint);
+    font-size: 0.8rem;
+    font-family: "Share Tech Mono", monospace;
+  }
+
+  footer a { color: var(--ink-soft); }
+
+  .mock-badge {
+    display: none;
+    z-index: 60;
+  }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="portal-ring" id="portalRing">
+    <div class="portal-text">LA FÍSICA REAL...</div>
+  </div>
+  <p class="gate-sub">¿Quieres ver qué hay al otro lado?</p>
+  <button class="gate-btn" id="enterBtn">ATRAVESAR PORTAL →</button>
+  <p class="gate-disclaimer">No hace falta traje protector. Probablemente.</p>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<div class="main hidden" id="main">
+  <div class="app">
+
+    <div class="hero">
+      <p class="kicker">Bitácora Glitch · Portal_Sim</p>
+      <h1>La física real detrás de las mecánicas de Portal</h1>
+      <p class="lead">Cinco simulaciones interactivas para descubrir qué reglas sigue realmente la física de Portal — y en cuál de ellas, de verdad, deja de seguirlas.</p>
+    </div>
+
+    <div class="stance">
+      <div class="cell">
+        <h2>Qué es esto</h2>
+        <p>Simulaciones jugables de la física detrás de los portales: velocidad, trayectorias, energía y sus límites.</p>
+        <p>Ajusta los parámetros y compruébalo tú mismo. Es un método razonablemente eficaz para descubrir cómo funciona algo.</p>
+        <p>No se requiere formación previa. No depende de su fe.</p>
+      </div>
+      <div class="cell">
+        <h2>Qué no pretende ser</h2>
+        <p>No es una guía para pasarte el juego.</p>
+        <p>Tampoco es un curso completo de física. Ya existe suficiente material dedicado a convertir una ecuación en una amenaza.</p>
+        <p>Aquí planteamos una situación y dejamos que la física responda mientras observas. Puedes modificar los parámetros.</p>
+        <p>A veces eso no es suficiente para conseguir el resultado esperado.</p>
+      </div>
+      <div class="cell">
+        <h2>Si quieres más</h2>
+        <p>Cada simulación tiene un artículo hermano en mi Bitácora Glitch, con el contexto, la explicación física y el motivo por el que el resultado puede no coincidir con lo que esperabas.</p>
+        <p>Los enlaces aparecerán a medida que se publiquen.</p>
+        <p><strong>La intuición humana no se considera una fuente válida.</strong></p>
+      </div>
+    </div>
+
+    <p class="triptych">
+      <strong>Cinco portales.</strong> Cinco experimentos.<br>
+      Una pregunta: <strong>¿qué está haciendo realmente la física de Portal?</strong>
+    </p>
+
+    <div class="portal-grid">
+
+      <a class="portal-card" data-color="blue" data-anim="fall" href="01-conservacion-rapidez/index.html">
+        <div class="portal-shape">
+          <svg viewBox="0 0 68 100" class="path-svg"><path d="M34,10 L34,80 L58,32" /></svg>
+          <div class="ball"></div>
+        </div>
+        <div class="portal-num">01</div>
+        <h3 class="portal-name">Conservación de velocidad</h3>
+        <p class="portal-desc">La magnitud de la velocidad no cambia. La dirección sí.</p>
+        <span class="portal-enter">ENTRAR →</span>
+      </a>
+
+      <a class="portal-card" data-color="orange" data-anim="arc" href="02-trayectorias/index.html">
+        <div class="portal-shape">
+          <svg viewBox="0 0 68 100" class="path-svg"><path d="M10,80 Q34,8 58,80" /></svg>
+          <div class="ball"></div>
+        </div>
+        <div class="portal-num">02</div>
+        <h3 class="portal-name">Trayectorias y ángulo de disparo</h3>
+        <p class="portal-desc">La velocidad no elige el camino. El ángulo, sí.</p>
+        <span class="portal-enter">ENTRAR →</span>
+      </a>
+
+      <a class="portal-card" data-color="blue" data-anim="straight" href="03-esfera-energia/index.html">
+        <div class="portal-shape">
+          <svg viewBox="0 0 68 100" class="path-svg"><path d="M10,80 L58,18" /></svg>
+          <div class="ball"></div>
+        </div>
+        <div class="portal-num">03</div>
+        <h3 class="portal-name">Redirección de la esfera de energía</h3>
+        <p class="portal-desc">Esta no cae. Solo cambia de dirección.</p>
+        <span class="portal-enter">ENTRAR →</span>
+      </a>
+
+      <a class="portal-card" data-color="orange" data-anim="loop" href="04-fling-cadena/index.html">
+        <div class="portal-shape">
+          <svg viewBox="0 0 68 100" class="path-svg"><path d="M34,12 L34,88" /></svg>
+          <div class="ball"></div>
+        </div>
+        <div class="portal-num">04</div>
+        <h3 class="portal-name">Fling en cadena / caída infinita</h3>
+        <p class="portal-desc">Con un salto no llega. Encadenando, sí.</p>
+        <span class="portal-enter">ENTRAR →</span>
+      </a>
+
+      <a class="portal-card" data-color="blue" data-anim="settle" href="05-velocidad-terminal/index.html">
+        <div class="portal-shape">
+          <svg viewBox="0 0 68 100" class="path-svg"><path d="M34,6 C34,45 34,55 34,80" /></svg>
+          <div class="ball"></div>
+        </div>
+        <div class="portal-num">05</div>
+        <h3 class="portal-name">Velocidad terminal</h3>
+        <p class="portal-desc">Sigue cayendo. Ha dejado de acelerar.</p>
+        <span class="portal-enter">ENTRAR →</span>
+      </a>
+
+    </div>
+
+    <footer>
+      Parte de <a href="https://v0raonline.substack.com" target="_blank" rel="noopener">Bitácora Glitch</a> — v0raonline.substack.com. Código en <a href="https://github.com/V0raOnline/Portal_Sim" target="_blank" rel="noopener">GitHub</a> · <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>.<br>
+      Por favor, no culpe al portal.
+    </footer>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const gate = document.getElementById('gate');
+  const main = document.getElementById('main');
+  const enterBtn = document.getElementById('enterBtn');
+  const portalRing = document.getElementById('portalRing');
+  const flash = document.getElementById('flash');
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function showMain() {
+    gate.classList.add('hidden');
+    main.classList.remove('hidden');
+  }
+
+  function enterPortal() {
+    if (reduced) { showMain(); return; }
+    gate.classList.add('activating');
+    setTimeout(() => { flash.classList.add('flashing'); }, 550);
+    setTimeout(showMain, 950);
+  }
+
+  enterBtn.addEventListener('click', enterPortal);
+  portalRing.addEventListener('click', enterPortal);
+
+  // En pantallas táctiles, el primer toque muestra la preview; el segundo entra.
+  const isTouch = window.matchMedia('(hover: none)').matches;
+  if (isTouch) {
+    const cards = document.querySelectorAll('.portal-card');
+    cards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (!card.classList.contains('touch-active')) {
+          e.preventDefault();
+          cards.forEach(c => c.classList.remove('touch-active'));
+          card.classList.add('touch-active');
+        }
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.portal-card')) {
+        cards.forEach(c => c.classList.remove('touch-active'));
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

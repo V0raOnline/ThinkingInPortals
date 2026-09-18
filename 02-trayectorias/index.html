@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La velocidad no elige el camino. El ángulo, sí.</title>
+<style>
+  :root {
+    --bg: #EDE7D9;
+    --panel: #FFFFFF;
+    --panel-border: #D8D0BC;
+    --ink: #201C16;
+    --ink-soft: #6B6355;
+    --floor: #C9C0A8;
+    --target-zone: #EDE9DD;
+    --grid-line: rgba(32,28,22,0.06);
+    --blue: #1E7FB8;
+    --blue-glow: rgba(30,127,184,0.35);
+    --orange: #D9611E;
+    --orange-glow: rgba(217,97,30,0.35);
+    --trace: rgba(32,28,22,0.28);
+    --accent-btn: #201C16;
+    --accent-btn-text: #EDE7D9;
+    font-family: "IBM Plex Sans", -apple-system, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181A;
+      --panel: #1F2226;
+      --panel-border: #34383D;
+      --ink: #EDEAE3;
+      --ink-soft: #97928A;
+      --floor: #2A2D31;
+      --target-zone: #4A4E55;
+      --grid-line: rgba(237,234,227,0.06);
+      --blue: #4FB4E8;
+      --blue-glow: rgba(79,180,232,0.35);
+      --orange: #F08A47;
+      --orange-glow: rgba(240,138,71,0.35);
+      --trace: rgba(237,234,227,0.25);
+      --accent-btn: #EDEAE3;
+      --accent-btn-text: #16181A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #16181A;
+    --panel: #1F2226;
+    --panel-border: #34383D;
+    --ink: #EDEAE3;
+    --ink-soft: #97928A;
+    --floor: #2A2D31;
+    --target-zone: #4A4E55;
+    --grid-line: rgba(237,234,227,0.06);
+    --blue: #4FB4E8;
+    --blue-glow: rgba(79,180,232,0.35);
+    --orange: #F08A47;
+    --orange-glow: rgba(240,138,71,0.35);
+    --trace: rgba(237,234,227,0.25);
+    --accent-btn: #EDEAE3;
+    --accent-btn-text: #16181A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 28px 20px 40px;
+  }
+
+  .app { max-width: 1040px; margin: 0 auto; }
+
+  .back-link {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    margin-bottom: 18px;
+  }
+  .back-link:hover { color: var(--ink); }
+
+  .sim-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .sim-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px 6px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    text-decoration: none;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .sim-pill:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .sim-pill .mini-shape {
+    position: relative;
+    width: 15px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--blue);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sim-pill .mini-shape svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sim-pill .mini-shape path {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.9;
+    stroke: var(--blue);
+  }
+
+  .sim-pill[data-color="orange"] .mini-shape { border-color: var(--orange); }
+  .sim-pill[data-color="orange"] .mini-shape path { stroke: var(--orange); }
+
+  .sim-pill.current {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+    font-weight: 600;
+    cursor: default;
+  }
+
+  header.nameplate { margin-bottom: 22px; }
+
+  header.nameplate h1 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    line-height: 1.25;
+    margin: 0 0 8px;
+    max-width: 36ch;
+  }
+
+  header.nameplate p {
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  main.stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 760px) {
+    main.stage { grid-template-columns: 1fr; }
+  }
+
+  .canvas-wrap {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .punch-box {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 9px 13px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    display: none;
+    z-index: 5;
+  }
+
+  .punch-box.show { display: block; }
+  .punch-box.success { color: var(--orange); border-color: var(--orange); }
+  .punch-box.fail { color: var(--blue); border-color: var(--blue); }
+
+  canvas { display: block; width: 100%; height: auto; border-radius: 2px; }
+
+  aside.panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+
+  .control label span:last-child {
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--blue); }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  button.primary { background: var(--accent-btn); color: var(--accent-btn-text); }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--panel-border); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  .readout {
+    border-top: 1px solid var(--panel-border);
+    padding-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stat { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.88rem; }
+  .stat-label { color: var(--ink-soft); }
+  .stat-value { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.95rem; }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.orange { color: var(--orange); }
+
+  .note { font-size: 0.85rem; line-height: 1.55; color: var(--ink-soft); margin: 0; }
+  .note strong { color: var(--ink); }
+  .note a { color: var(--orange); text-decoration: none; font-weight: 600; }
+  .note a:hover { text-decoration: underline; }
+
+  .explain {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+
+
+</style>
+</head>
+<body>
+<div class="app">
+<a class="back-link" href="../index.html">← Inicio</a>
+<nav class="sim-nav">
+    <a class="sim-pill" data-color="blue" href="../01-conservacion-rapidez/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,10 L34,80 L58,32" /></svg></span>01</a>
+    <span class="sim-pill current" data-color="orange"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 Q34,8 58,80" /></svg></span>02</span>
+    <a class="sim-pill" data-color="blue" href="../03-esfera-energia/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 L58,18" /></svg></span>03</a>
+    <a class="sim-pill" data-color="orange" href="../04-fling-cadena/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,12 L34,88" /></svg></span>04</a>
+    <a class="sim-pill" data-color="blue" href="../05-velocidad-terminal/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,6 C34,45 34,55 34,80" /></svg></span>05</a>
+  </nav>
+
+  <header class="nameplate">
+    <h1>La velocidad no elige el camino. El ángulo, sí.</h1>
+    <p>La altura de caída determina la velocidad de salida. La orientación del portal determina hacia dónde sale. Cambia una cosa cada vez y observa cuál modifica el alcance.</p>
+  </header>
+
+  <main class="stage">
+    <div class="canvas-wrap">
+      <div class="punch-box" id="punchBox"></div>
+      <canvas id="sim" width="760" height="420"></canvas>
+    </div>
+
+    <aside class="panel">
+      <div class="control">
+        <label>Altura de caída <span id="hVal">6.0 m</span></label>
+        <input type="range" id="hSlider" min="1" max="15" step="0.5" value="6">
+      </div>
+      <div class="control">
+        <label>Ángulo de salida <span id="aVal">45°</span></label>
+        <input type="range" id="aSlider" min="-85" max="85" step="1" value="45">
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" id="launchBtn">Soltar objeto</button>
+        <button class="secondary" id="resetBtn">Reiniciar</button>
+      </div>
+
+      <div class="readout">
+        <div class="stat">
+          <span class="stat-label">Velocidad (constante)</span>
+          <span class="stat-value blue" id="vVal">— m/s</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Ángulo de salida</span>
+          <span class="stat-value orange" id="angleVal">45°</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Distancia a la bandera</span>
+          <span class="stat-value orange" id="targetVal">— m</span>
+        </div>
+        <div class="stat" id="rangeRow" style="display:none;">
+          <span class="stat-label">Alcance</span>
+          <span class="stat-value" id="rangeVal">— m</span>
+        </div>
+        <div class="stat" id="maxHRow" style="display:none;">
+          <span class="stat-label">Altura máxima</span>
+          <span class="stat-value" id="maxHVal">— m</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="explain">
+    <p class="note" id="note">Ajusta la altura y el ángulo, y pulsa «Soltar objeto» para ver la parábola.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('sim');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const hSlider = document.getElementById('hSlider');
+  const aSlider = document.getElementById('aSlider');
+  const hVal = document.getElementById('hVal');
+  const aVal = document.getElementById('aVal');
+  const vVal = document.getElementById('vVal');
+  const angleVal = document.getElementById('angleVal');
+  const rangeRow = document.getElementById('rangeRow');
+  const rangeVal = document.getElementById('rangeVal');
+  const maxHRow = document.getElementById('maxHRow');
+  const maxHVal = document.getElementById('maxHVal');
+  const note = document.getElementById('note');
+  const punchBox = document.getElementById('punchBox');
+  const targetVal = document.getElementById('targetVal');
+  const launchBtn = document.getElementById('launchBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const g = 9.8;
+  const worldH = 13;
+  const worldW = 30;
+  const scale = H / worldH;
+  const scaleX = W / worldW;
+
+  const floorY = H - 24;
+  const portalAx = 110;  // px, portal de entrada (suelo, fijo)
+  const rampX = 430;     // px, portal de salida (rampa, fijo en el suelo) — centrado para dejar sitio a ambos lados
+
+  const targetToleranceM = 0.8;
+  let targetSide = 1;
+  let targetDistM = 8;
+  let targetXpx = rampX + targetSide * targetDistM * scaleX;
+
+  function randomizeTarget() {
+    targetSide = Math.random() < 0.5 ? -1 : 1;
+    const safetyPx = targetSide < 0 ? 110 : 60; // más margen hacia el portal que hacia el borde
+    const boundaryPx = targetSide < 0 ? portalAx : (W - 20);
+    const maxDistM = (Math.abs(rampX - boundaryPx) - safetyPx) / scaleX;
+    targetDistM = Math.round((5 + Math.random() * (maxDistM - 5)) * 2) / 2;
+    targetXpx = rampX + targetSide * targetDistM * scaleX;
+    targetVal.textContent = targetDistM.toFixed(1) + ' m (' + (targetSide < 0 ? 'izquierda' : 'derecha') + ')';
+  }
+
+  let h = parseFloat(hSlider.value);
+  let theta = parseFloat(aSlider.value); // grados
+
+  let state = 'idle'; // idle | falling1 | flying2 | landed
+  let ball = { x: portalAx, y: floorY - h * scale };
+  let vy1 = 0;
+  let vExit = 0;
+  let flyVX = 0, flyVY = 0;
+  let trace1 = [];
+  let trace2 = [];
+  let landMarker = null;
+  let landTime = null;
+  let minFlightY = null;
+  let lastT = null;
+  const timeScale = 0.55;
+
+  const successLines = [
+    'Trayectoria completada. El comité recuerda que 45° maximiza el alcance, no la dignidad.',
+    'Logro desbloqueado: «Parábola aceptable». La gravedad no necesitó felicitaciones para hacer su parte.',
+    'Cálculo confirmado. El ángulo fue elegido por usted; la física, como siempre, solo obedeció.',
+    'Aterrizaje registrado. Si buscaba el alcance máximo, ya sabe qué número probar la próxima vez.',
+    'Prueba superada. El objeto agradece el viaje. Usted, técnicamente, no ha hecho nada.',
+    'La física no tiene obligación de resultar intuitiva.'
+  ];
+
+  const failLines = [
+    'No ha alcanzado la bandera. La parábola fue perfecta; el objetivo, no tanto.',
+    'Cálculo confirmado: ángulo o altura incorrectos. La gravedad, una vez más, no tiene la culpa.',
+    'Fallo registrado. Pruebe otra combinación — la física no se ofende por los intentos.',
+    'Objetivo no alcanzado. Ajuste una variable cada vez; es más eficaz que cambiar las dos a ciegas.'
+  ];
+  function setControlsState(running) {
+    launchBtn.classList.toggle('primary', !running);
+    launchBtn.classList.toggle('secondary', running);
+    launchBtn.disabled = running;
+    resetBtn.classList.toggle('primary', running);
+    resetBtn.classList.toggle('secondary', !running);
+  }
+
+  function resetBall() {
+    state = 'idle';
+    ball = { x: portalAx, y: floorY - h * scale };
+    vy1 = 0;
+    trace1 = [];
+    trace2 = [];
+    landMarker = null;
+    landTime = null;
+    minFlightY = null;
+    rangeRow.style.display = 'none';
+    maxHRow.style.display = 'none';
+    punchBox.classList.remove('show', 'success', 'fail');
+    vVal.textContent = '— m/s';
+    angleVal.textContent = theta.toFixed(0) + '°';
+    note.innerHTML = 'Ajusta la altura y el ángulo, y pulsa «Soltar objeto» para ver la parábola.';
+    setControlsState(false);
+    draw();
+  }
+
+  function getCss(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  function drawGrid() {
+    ctx.strokeStyle = getCss('--grid-line');
+    ctx.lineWidth = 1;
+    for (let m = 0; m <= worldH; m++) {
+      const y = H - m * scale;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+  }
+
+  function drawFloorPortal(px, py, color, glow) {
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 26, 8, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawRampPortal(px, py, thetaDeg, color, glow) {
+    const rad = thetaDeg * Math.PI / 180;
+    ctx.save();
+    ctx.translate(px, py);
+    // línea de rampa
+    ctx.strokeStyle = getCss('--ink-soft');
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-34 * Math.cos(rad), 34 * Math.sin(rad));
+    ctx.lineTo(34 * Math.cos(rad), -34 * Math.sin(rad));
+    ctx.stroke();
+    // portal, perpendicular a la rampa, apuntando en la dirección de salida
+    ctx.rotate(-rad);
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8, 24, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawArrow(x, y, vx, vy, color) {
+    const len = Math.min(Math.hypot(vx, vy) * 2.2, 60);
+    const ang = Math.atan2(vy, vx);
+    const ex = x + len * Math.cos(ang);
+    const ey = y + len * Math.sin(ang);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    const headLen = 7;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - headLen * Math.cos(ang - 0.4), ey - headLen * Math.sin(ang - 0.4));
+    ctx.lineTo(ex - headLen * Math.cos(ang + 0.4), ey - headLen * Math.sin(ang + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getCss('--panel');
+    ctx.fillRect(0, 0, W, H);
+    drawGrid();
+
+    ctx.fillStyle = getCss('--floor');
+    ctx.fillRect(0, floorY, W, H - floorY);
+
+    drawFloorPortal(portalAx, floorY, getCss('--blue'), getCss('--blue-glow'));
+
+    // franja de tolerancia (zona de acierto), centrada en la bandera
+    const zoneStartPx = targetXpx - targetToleranceM * scaleX;
+    const zoneEndPx = targetXpx + targetToleranceM * scaleX;
+    ctx.fillStyle = getCss('--target-zone');
+    ctx.fillRect(zoneStartPx, floorY, zoneEndPx - zoneStartPx, H - floorY);
+    ctx.strokeStyle = getCss('--orange');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(zoneStartPx, floorY);
+    ctx.lineTo(zoneEndPx, floorY);
+    ctx.stroke();
+
+    // bandera del objetivo
+    ctx.strokeStyle = getCss('--orange');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(targetXpx, floorY);
+    ctx.lineTo(targetXpx, floorY - 42);
+    ctx.stroke();
+    ctx.fillStyle = getCss('--orange');
+    ctx.beginPath();
+    ctx.moveTo(targetXpx, floorY - 42);
+    ctx.lineTo(targetXpx + 15, floorY - 36);
+    ctx.lineTo(targetXpx, floorY - 30);
+    ctx.closePath();
+    ctx.fill();
+    drawRampPortal(rampX, floorY, theta, getCss('--orange'), getCss('--orange-glow'));
+
+    // guía de altura de caída
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = getCss('--ink-soft');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(portalAx, floorY - h * scale);
+    ctx.lineTo(portalAx, floorY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // trazas
+    ctx.strokeStyle = getCss('--trace');
+    ctx.lineWidth = 2;
+    if (trace1.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(trace1[0].x, trace1[0].y);
+      trace1.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+    if (trace2.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(trace2[0].x, trace2[0].y);
+      trace2.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+
+    // flecha de vector de salida (idle/preview)
+    if (state === 'idle') {
+      const radAbs = Math.abs(theta) * Math.PI / 180;
+      const dirSign = theta < 0 ? -1 : 1;
+      drawArrow(rampX, floorY, dirSign * 24 * Math.cos(radAbs), -24 * Math.sin(radAbs), getCss('--orange'));
+    }
+
+    // bola
+    ctx.fillStyle = getCss('--ink');
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // pulso de logro
+    if (landMarker && landTime !== null) {
+      const elapsed = performance.now() - landTime;
+      const dur = 900;
+      if (elapsed < dur) {
+        const p = elapsed / dur;
+        ctx.beginPath();
+        ctx.arc(landMarker.x, landMarker.y, 8 + p * 30, 0, Math.PI * 2);
+        ctx.strokeStyle = getCss('--orange');
+        ctx.globalAlpha = 1 - p;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  function draw() { drawScene(); }
+
+  function updateLabels() {
+    hVal.textContent = h.toFixed(1) + ' m';
+    aVal.textContent = theta.toFixed(0) + '°';
+    angleVal.textContent = theta.toFixed(0) + '°';
+  }
+
+  hSlider.addEventListener('input', () => {
+    h = parseFloat(hSlider.value);
+    updateLabels();
+    if (state === 'idle') resetBall();
+  });
+
+  aSlider.addEventListener('input', () => {
+    theta = parseFloat(aSlider.value);
+    updateLabels();
+    if (state === 'idle') resetBall();
+  });
+
+  launchBtn.addEventListener('click', () => {
+    if (state !== 'idle') return;
+    state = 'falling1';
+    ball = { x: portalAx, y: floorY - h * scale };
+    vy1 = 0;
+    trace1 = [{ x: ball.x, y: ball.y }];
+    trace2 = [];
+    lastT = null;
+    setControlsState(true);
+    requestAnimationFrame(step);
+  });
+
+  resetBtn.addEventListener('click', resetBall);
+
+  function step(t) {
+    if (lastT === null) lastT = t;
+    let dt = ((t - lastT) / 1000) * timeScale;
+    dt = Math.min(dt, 0.033);
+    lastT = t;
+
+    if (state === 'falling1') {
+      vy1 += g * dt;
+      ball.y += vy1 * scale * dt;
+      trace1.push({ x: ball.x, y: ball.y });
+
+      if (ball.y >= floorY) {
+        const vEntry = vy1;
+        vExit = vEntry;
+        vVal.textContent = vExit.toFixed(2) + ' m/s';
+
+        const radAbs = Math.abs(theta) * Math.PI / 180;
+        const dirSign = theta < 0 ? -1 : 1;
+        ball = { x: rampX, y: floorY };
+        flyVX = dirSign * vExit * Math.cos(radAbs);
+        flyVY = -vExit * Math.sin(radAbs); // siempre negativo = hacia arriba, sea cual sea el lado
+        minFlightY = ball.y;
+        trace2 = [{ x: ball.x, y: ball.y }];
+        state = 'flying2';
+
+        note.innerHTML = 'La <strong>velocidad de salida</strong> (' + vExit.toFixed(2) + ' m/s) es la misma en todos los casos. La altura de caída determina cuánta velocidad acumula el objeto antes de atravesar el portal; la orientación del portal determina la dirección con la que sale. A partir de ahí, la gravedad vuelve a hacer su trabajo y dibuja una parábola. Con la misma velocidad inicial y a la misma altura de salida y llegada, 45° proporciona el mayor alcance.';
+      }
+    } else if (state === 'flying2') {
+      flyVY += g * dt;
+      ball.x += flyVX * scaleX * dt;
+      ball.y += flyVY * scale * dt;
+      trace2.push({ x: ball.x, y: ball.y });
+      if (ball.y < minFlightY) minFlightY = ball.y;
+
+      if (ball.y >= floorY) {
+        ball.y = floorY;
+        state = 'landed';
+        const range = Math.abs(ball.x - rampX) / scaleX;
+        const maxH = (floorY - minFlightY) / scale;
+        rangeVal.textContent = range.toFixed(1) + ' m';
+        maxHVal.textContent = maxH.toFixed(1) + ' m';
+        rangeRow.style.display = 'flex';
+        maxHRow.style.display = 'flex';
+        landMarker = { x: ball.x, y: floorY };
+        landTime = performance.now();
+
+        const errPx = Math.abs(ball.x - targetXpx);
+        const errM = errPx / scaleX;
+        const success = errM <= targetToleranceM;
+        punchBox.classList.add('show');
+        punchBox.classList.toggle('success', success);
+        punchBox.classList.toggle('fail', !success);
+        const linesP = success ? successLines : failLines;
+        const lineP = linesP[Math.floor(Math.random() * linesP.length)];
+        punchBox.textContent = lineP + ' (error: ' + errM.toFixed(2) + ' m)';
+
+        const cerca45 = Math.abs(Math.abs(theta) - 45) <= 3;
+        note.innerHTML += cerca45
+          ? ' A ' + Math.abs(theta).toFixed(0) + '°, cerca del óptimo: para una misma velocidad, ningún otro ángulo llega más lejos que 45° (a cualquiera de los dos lados).'
+          : ' Prueba a acercar la inclinación a 45° con la misma altura de caída y compara el alcance — es el punto donde, para esta velocidad, se llega más lejos, sea cual sea el lado.';
+        requestAnimationFrame(pulseLoop);
+      }
+    }
+
+    draw();
+    if (state === 'falling1' || state === 'flying2') {
+      requestAnimationFrame(step);
+    }
+  }
+
+  function pulseLoop(t) {
+    draw();
+    if (landTime !== null && performance.now() - landTime < 900) {
+      requestAnimationFrame(pulseLoop);
+    }
+  }
+
+  randomizeTarget();
+  updateLabels();
+  resetBall();
+})();
+</script>
+</body>
+</html>
