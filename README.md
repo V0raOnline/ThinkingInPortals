@@ -26,6 +26,8 @@ Cada simulación es un HTML autocontenido — sin build, sin frameworks, sin dep
 - Convención de color: **naranja = acierto, azul = fallo**
 - Mensajes de resultado con tono de laboratorio de pruebas, rotando entre varias frases
 - Barra de navegación (pills) para saltar directamente a cualquier otra simulación, y enlace "← Inicio" a la landing
+- Footer con enlaces a GitHub, licencia y al artículo hermano en Bitácora Glitch
+- Cabecera legal, `meta description` y Open Graph completos en cada página
 - Soporte `prefers-reduced-motion` y temas claro/oscuro automáticos
 
 ## Tecnología
