@@ -1,9 +1,25 @@
 <!DOCTYPE html>
+<!--
+  ThinkingInPortals · https://v0raonline.github.io/ThinkingInPortals/05-velocidad-terminal/
+  Copyright (c) 2026 V0ra (v0raonline)
+  Licencia CC BY-NC 4.0 — sin fines comerciales. https://creativecommons.org/licenses/by-nc/4.0/
+-->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sigue cayendo. Has dejado de acelerar.</title>
+<meta name="author" content="V0ra (V0raOnline)">
+<meta name="copyright" content="Copyright (c) 2026 V0ra (v0raonline)">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+<meta name="description" content="Fuera del juego, la fricción del aire limita la velocidad de caída. Contraste real frente al bucle idealizado.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ThinkingInPortals">
+<meta property="og:locale" content="es_ES">
+<meta property="og:url" content="https://v0raonline.github.io/ThinkingInPortals/05-velocidad-terminal/">
+<meta property="og:title" content="Velocidad terminal — ThinkingInPortals">
+<meta property="og:description" content="Fuera del juego, la fricción del aire limita la velocidad de caída. Contraste real frente al bucle idealizado.">
+<meta name="twitter:card" content="summary">
 <style>
   :root {
     --bg: #EDE7D9;
@@ -348,7 +364,7 @@
   const chartSpeed = { x: 210, y: 20, w: 690, h: 170 };
   const chartHeight = { x: 210, y: 270, w: 690, h: 180 };
 
-  // bucle visual de portales (izquierda): puramente ilustrativo del ritmo de caída
+  // bucle visual de portales (izquierda): puramente ilustrativo del ritmo de caída [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
   const shaftX = 95;
   const shaftTop = 40;
   const shaftBottom = 440;
@@ -562,7 +578,7 @@
     drawCurve(chartHeight, Ttotal, heightYMax, idealHeightPts, getCss('--orange'), true);
     drawCurve(chartHeight, Ttotal, heightYMax, realHeightPts, getCss('--blue'), false);
 
-    // aviso "fuera de escala" si la curva ideal ya se salió
+    // aviso "fuera de escala" si la curva ideal ya se salió [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
     ctx.fillStyle = getCss('--orange');
     ctx.font = '11px "IBM Plex Mono", monospace';
     if (idealSpeedPts.length && idealSpeedPts[idealSpeedPts.length - 1].v >= speedYMax * 0.98) {

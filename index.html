@@ -1,9 +1,25 @@
 <!DOCTYPE html>
+<!--
+  ThinkingInPortals · https://v0raonline.github.io/ThinkingInPortals/
+  Copyright (c) 2026 V0ra (v0raonline)
+  Licencia CC BY-NC 4.0 — sin fines comerciales. https://creativecommons.org/licenses/by-nc/4.0/
+-->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ThinkingInPortals — la física real detrás de Portal</title>
+<meta name="author" content="V0ra (V0raOnline)">
+<meta name="copyright" content="Copyright (c) 2026 V0ra (v0raonline)">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+<meta name="description" content="Cinco simulaciones interactivas para descubrir qué reglas sigue realmente la física de Portal, y cuál de ellas de verdad deja de seguirlas. Parte de Bitácora Glitch.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ThinkingInPortals">
+<meta property="og:locale" content="es_ES">
+<meta property="og:url" content="https://v0raonline.github.io/ThinkingInPortals/">
+<meta property="og:title" content="ThinkingInPortals — la física real detrás de Portal">
+<meta property="og:description" content="Cinco simulaciones interactivas para descubrir qué reglas sigue realmente la física de Portal, y cuál de ellas de verdad deja de seguirlas. Parte de Bitácora Glitch.">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -136,7 +152,7 @@
     z-index: 50;
   }
 
-  /* Estado activado (al pulsar "atravesar portal") */
+  /* Estado activado (al pulsar "atravesar portal") [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352] */
   .gate.activating .portal-ring {
     transform: scale(6);
     box-shadow: 0 0 120px var(--blue-glow), inset 0 0 120px var(--blue-glow);
@@ -623,7 +639,7 @@
   enterBtn.addEventListener('click', enterPortal);
   portalRing.addEventListener('click', enterPortal);
 
-  // En pantallas táctiles, el primer toque muestra la preview; el segundo entra.
+  // En pantallas táctiles, el primer toque muestra la preview; el segundo entra. [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
   const isTouch = window.matchMedia('(hover: none)').matches;
   if (isTouch) {
     const cards = document.querySelectorAll('.portal-card');

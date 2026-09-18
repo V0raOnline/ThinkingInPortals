@@ -1,9 +1,25 @@
 <!DOCTYPE html>
+<!--
+  ThinkingInPortals · https://v0raonline.github.io/ThinkingInPortals/04-fling-cadena/
+  Copyright (c) 2026 V0ra (v0raonline)
+  Licencia CC BY-NC 4.0 — sin fines comerciales. https://creativecommons.org/licenses/by-nc/4.0/
+-->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Un bucle que la física no ve gratis, pero tú sí.</title>
+<meta name="author" content="V0ra (V0raOnline)">
+<meta name="copyright" content="Copyright (c) 2026 V0ra (v0raonline)">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+<meta name="description" content="Con un salto no llegas. Encadenando vueltas por el mismo par de portales, sí. Simulación interactiva.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ThinkingInPortals">
+<meta property="og:locale" content="es_ES">
+<meta property="og:url" content="https://v0raonline.github.io/ThinkingInPortals/04-fling-cadena/">
+<meta property="og:title" content="Fling en cadena / caída infinita — ThinkingInPortals">
+<meta property="og:description" content="Con un salto no llegas. Encadenando vueltas por el mismo par de portales, sí. Simulación interactiva.">
+<meta name="twitter:card" content="summary">
 <style>
   :root {
     --bg: #EDE7D9;
@@ -482,7 +498,7 @@
     ctx.fillStyle = getCss('--grid-line');
     ctx.fillRect(shaftX + 60, floorY, targetStartPx - (shaftX + 60), H - floorY);
 
-    // plataforma objetivo (acotada, no infinita — exige precisión en ambos extremos)
+    // plataforma objetivo (acotada, no infinita — exige precisión en ambos extremos) [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
     ctx.fillStyle = getCss('--target-zone');
     ctx.fillRect(targetStartPx, floorY, targetEndPx - targetStartPx, H - floorY);
     ctx.strokeStyle = getCss('--orange');
@@ -618,7 +634,7 @@
         vVal.textContent = vCurrent.toFixed(2) + ' m/s';
 
         if (passIndex >= N) {
-          // liberar: el portal del techo gira y redirige la velocidad acumulada hacia la sala
+          // liberar: el portal del techo gira y redirige la velocidad acumulada hacia la sala [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
           state = 'releasing';
           ball = { x: shaftX, y: ceilingY };
           flyVX = vCurrent;

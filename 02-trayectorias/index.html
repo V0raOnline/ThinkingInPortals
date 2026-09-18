@@ -1,9 +1,25 @@
 <!DOCTYPE html>
+<!--
+  ThinkingInPortals · https://v0raonline.github.io/ThinkingInPortals/02-trayectorias/
+  Copyright (c) 2026 V0ra (v0raonline)
+  Licencia CC BY-NC 4.0 — sin fines comerciales. https://creativecommons.org/licenses/by-nc/4.0/
+-->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>La velocidad no elige el camino. El ángulo, sí.</title>
+<meta name="author" content="V0ra (V0raOnline)">
+<meta name="copyright" content="Copyright (c) 2026 V0ra (v0raonline)">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+<meta name="description" content="La velocidad no elige el camino: el ángulo del portal de salida, sí. Simulación interactiva de trayectorias.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ThinkingInPortals">
+<meta property="og:locale" content="es_ES">
+<meta property="og:url" content="https://v0raonline.github.io/ThinkingInPortals/02-trayectorias/">
+<meta property="og:title" content="Trayectorias y ángulo de disparo — ThinkingInPortals">
+<meta property="og:description" content="La velocidad no elige el camino: el ángulo del portal de salida, sí. Simulación interactiva de trayectorias.">
+<meta name="twitter:card" content="summary">
 <style>
   :root {
     --bg: #EDE7D9;
@@ -485,7 +501,7 @@
     ctx.moveTo(-34 * Math.cos(rad), 34 * Math.sin(rad));
     ctx.lineTo(34 * Math.cos(rad), -34 * Math.sin(rad));
     ctx.stroke();
-    // portal, perpendicular a la rampa, apuntando en la dirección de salida
+    // portal, perpendicular a la rampa, apuntando en la dirección de salida [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
     ctx.rotate(-rad);
     ctx.shadowColor = glow;
     ctx.shadowBlur = 16;
@@ -529,7 +545,7 @@
 
     drawFloorPortal(portalAx, floorY, getCss('--blue'), getCss('--blue-glow'));
 
-    // franja de tolerancia (zona de acierto), centrada en la bandera
+    // franja de tolerancia (zona de acierto), centrada en la bandera [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
     const zoneStartPx = targetXpx - targetToleranceM * scaleX;
     const zoneEndPx = targetXpx + targetToleranceM * scaleX;
     ctx.fillStyle = getCss('--target-zone');

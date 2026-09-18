@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://v0raonline.github.io/ThinkingInPortals/sitemap.xml
