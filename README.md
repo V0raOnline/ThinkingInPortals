@@ -1,8 +1,8 @@
-# Portal_Sim
+# ThinkingInPortals
 
 Cinco simulaciones interactivas sobre la física real detrás de las mecánicas de *Portal* (2007). Parte de **Bitácora Glitch** (v0raonline.substack.com).
 
-**[→ Ver la landing en vivo](https://v0raonline.github.io/Portal_Sim/)** *(activa GitHub Pages para que este enlace funcione — ver más abajo)*
+**[→ Ver la landing en vivo](https://v0raonline.github.io/ThinkingInPortals/)** *(activa GitHub Pages para que este enlace funcione — ver más abajo)*
 
 ## Qué es esto
 
@@ -36,7 +36,7 @@ Vanilla HTML + CSS + JS. Sin paso de compilación. Pensado para servirse tal cua
 
 1. **Settings → Pages → Source: Deploy from a branch**
 2. Branch: `main`, carpeta `/ (root)`
-3. La landing queda accesible en `https://v0raonline.github.io/Portal_Sim/`, y cada simulación en `https://v0raonline.github.io/Portal_Sim/01-conservacion-rapidez/` (etc.)
+3. La landing queda accesible en `https://v0raonline.github.io/ThinkingInPortals/`, y cada simulación en `https://v0raonline.github.io/ThinkingInPortals/01-conservacion-rapidez/` (etc.)
 
 ## Artículos
 
