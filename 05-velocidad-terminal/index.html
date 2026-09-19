@@ -339,7 +339,7 @@
   <main class="stage">
     <div class="canvas-wrap">
       <div class="punch-box" id="punchBox"></div>
-      <canvas id="sim" width="920" height="480"></canvas>
+      <canvas id="sim" width="920" height="590"></canvas>
     </div>
 
     <aside class="panel">
@@ -408,13 +408,13 @@
   const g = 9.8;
 
   // rects de las dos gráficas dentro del canvas
-  const chartSpeed = { x: 210, y: 20, w: 690, h: 170 };
-  const chartHeight = { x: 210, y: 270, w: 690, h: 180 };
+  const chartSpeed = { x: 210, y: 130, w: 690, h: 170 };
+  const chartHeight = { x: 210, y: 380, w: 690, h: 180 };
 
   // bucle visual de portales (izquierda): puramente ilustrativo del ritmo de caída [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
   const shaftX = 95;
-  const shaftTop = 40;
-  const shaftBottom = 440;
+  const shaftTop = 150;
+  const shaftBottom = 550;
   const loopMeters = 25; // "1 vuelta" = esta distancia real caída
   let lastLoopIndex = -1;
   let loopPulseTime = null;
@@ -548,7 +548,7 @@
   function drawLoopVisual(hReal) {
     ctx.fillStyle = getCss('--ink-soft');
     ctx.font = '11px "IBM Plex Sans", sans-serif';
-    ctx.fillText('Ritmo del bucle', shaftX - 55, 16);
+    ctx.fillText('Ritmo del bucle', shaftX - 55, 126);
 
     ctx.setLineDash([4, 5]);
     ctx.strokeStyle = getCss('--ink-soft');
