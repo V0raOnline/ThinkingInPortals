@@ -269,9 +269,9 @@
     gap: 10px;
   }
 
-  .stat { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.88rem; }
-  .stat-label { color: var(--ink-soft); }
-  .stat-value { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.95rem; }
+  .stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 0.88rem; }
+  .stat-label { color: var(--ink-soft); flex-shrink: 0; }
+  .stat-value { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.95rem; text-align: right; }
   .stat-value.blue { color: var(--blue); }
   .stat-value.orange { color: var(--orange); }
 
@@ -350,7 +350,7 @@
           <span class="stat-value orange" id="angleVal">45°</span>
         </div>
         <div class="stat">
-          <span class="stat-label">Distancia a la bandera</span>
+          <span class="stat-label">Objetivo</span>
           <span class="stat-value orange" id="targetVal">— m</span>
         </div>
         <div class="stat" id="rangeRow" style="display:none;">
@@ -407,18 +407,39 @@
   const rampX = 430;     // px, portal de salida (rampa, fijo en el suelo) — centrado para dejar sitio a ambos lados
 
   const targetToleranceM = 0.8;
+  const hitWindowPx = 7; // ventana de detección en el eje perpendicular al plano de impacto
+  let targetType = 'floor'; // 'floor' | 'wall' | 'ceiling'
   let targetSide = 1;
   let targetDistM = 8;
+  let targetHeightM = 3;
   let targetXpx = rampX + targetSide * targetDistM * scaleX;
+  let targetYpx = floorY;
 
   function randomizeTarget() {
+    const types = ['floor', 'wall', 'ceiling'];
+    targetType = types[Math.floor(Math.random() * types.length)];
+
     targetSide = Math.random() < 0.5 ? -1 : 1;
     const safetyPx = targetSide < 0 ? 110 : 60; // más margen hacia el portal que hacia el borde
     const boundaryPx = targetSide < 0 ? portalAx : (W - 20);
     const maxDistM = (Math.abs(rampX - boundaryPx) - safetyPx) / scaleX;
     targetDistM = Math.round((5 + Math.random() * (maxDistM - 5)) * 2) / 2;
     targetXpx = rampX + targetSide * targetDistM * scaleX;
-    targetVal.textContent = targetDistM.toFixed(1) + ' m (' + (targetSide < 0 ? 'izquierda' : 'derecha') + ')';
+
+    const ladoTxt = targetSide < 0 ? 'izquierda' : 'derecha';
+
+    if (targetType === 'wall') {
+      targetHeightM = Math.round((1 + Math.random() * 6) * 2) / 2; // 1–7 m de altura en la pared
+      targetYpx = floorY - targetHeightM * scale;
+      targetVal.textContent = targetDistM.toFixed(1) + ' m (' + ladoTxt + '), ' + targetHeightM.toFixed(1) + ' m de altura — en la pared';
+    } else if (targetType === 'ceiling') {
+      targetHeightM = Math.round((6 + Math.random() * 6) * 2) / 2; // 6–12 m
+      targetYpx = floorY - targetHeightM * scale;
+      targetVal.textContent = targetDistM.toFixed(1) + ' m (' + ladoTxt + '), ' + targetHeightM.toFixed(1) + ' m de altura — en el techo';
+    } else {
+      targetYpx = floorY;
+      targetVal.textContent = targetDistM.toFixed(1) + ' m (' + ladoTxt + ') — en el suelo';
+    }
   }
 
   let h = parseFloat(hSlider.value);
@@ -452,6 +473,7 @@
     'Fallo registrado. Pruebe otra combinación — la física no se ofende por los intentos.',
     'Objetivo no alcanzado. Ajuste una variable cada vez; es más eficaz que cambiar las dos a ciegas.'
   ];
+
   function setControlsState(running) {
     launchBtn.classList.toggle('primary', !running);
     launchBtn.classList.toggle('secondary', running);
@@ -550,6 +572,119 @@
     ctx.fill();
   }
 
+  function drawTargetSurface() {
+    const orange = getCss('--orange');
+    const zone = getCss('--target-zone');
+    const floorColor = getCss('--floor');
+
+    if (targetType === 'wall') {
+      // pilar de pared, del suelo al borde superior
+      const wallHalfW = 8;
+      ctx.fillStyle = floorColor;
+      ctx.fillRect(targetXpx - wallHalfW, 0, wallHalfW * 2, floorY);
+
+      // franja de tolerancia sobre la pared
+      const zoneTop = targetYpx - targetToleranceM * scale;
+      const zoneBottom = targetYpx + targetToleranceM * scale;
+      ctx.fillStyle = zone;
+      ctx.fillRect(targetXpx - wallHalfW, zoneTop, wallHalfW * 2, zoneBottom - zoneTop);
+      ctx.strokeStyle = orange;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(targetXpx - wallHalfW, zoneTop);
+      ctx.lineTo(targetXpx + wallHalfW, zoneTop);
+      ctx.moveTo(targetXpx - wallHalfW, zoneBottom);
+      ctx.lineTo(targetXpx + wallHalfW, zoneBottom);
+      ctx.stroke();
+
+      // bandera saliendo hacia la sala (lado contrario a la rampa)
+      const dir = targetSide < 0 ? 1 : -1;
+      const poleTipX = targetXpx + dir * 30;
+      ctx.strokeStyle = orange;
+      ctx.beginPath();
+      ctx.moveTo(targetXpx, targetYpx);
+      ctx.lineTo(poleTipX, targetYpx);
+      ctx.stroke();
+      ctx.fillStyle = orange;
+      ctx.beginPath();
+      ctx.moveTo(poleTipX - 8, targetYpx);
+      ctx.lineTo(poleTipX + 8, targetYpx);
+      ctx.lineTo(poleTipX, targetYpx - 14);
+      ctx.closePath();
+      ctx.fill();
+
+    } else if (targetType === 'ceiling') {
+      // estructura de techo (fija, arriba del todo)
+      const ceilThickness = 14;
+      ctx.fillStyle = floorColor;
+      ctx.fillRect(0, 0, W, ceilThickness);
+
+      // guía discontinua: de dónde cuelga el objetivo
+      ctx.setLineDash([4, 5]);
+      ctx.strokeStyle = getCss('--ink-soft');
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(targetXpx, ceilThickness);
+      ctx.lineTo(targetXpx, targetYpx);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // franja de tolerancia real, en la altura exacta del objetivo
+      const zoneLeft = targetXpx - targetToleranceM * scaleX;
+      const zoneRight = targetXpx + targetToleranceM * scaleX;
+      const zoneHalfH = 10;
+      ctx.fillStyle = zone;
+      ctx.fillRect(zoneLeft, targetYpx - zoneHalfH, zoneRight - zoneLeft, zoneHalfH * 2);
+      ctx.strokeStyle = orange;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(zoneLeft, targetYpx);
+      ctx.lineTo(zoneRight, targetYpx);
+      ctx.stroke();
+
+      // bandera colgando hacia abajo
+      ctx.strokeStyle = orange;
+      ctx.beginPath();
+      ctx.moveTo(targetXpx, targetYpx);
+      ctx.lineTo(targetXpx, targetYpx + 30);
+      ctx.stroke();
+      ctx.fillStyle = orange;
+      ctx.beginPath();
+      ctx.moveTo(targetXpx, targetYpx + 30);
+      ctx.lineTo(targetXpx + 15, targetYpx + 24);
+      ctx.lineTo(targetXpx, targetYpx + 18);
+      ctx.closePath();
+      ctx.fill();
+
+    } else {
+      // suelo: franja de tolerancia + bandera de pie
+      const zoneStartPx = targetXpx - targetToleranceM * scaleX;
+      const zoneEndPx = targetXpx + targetToleranceM * scaleX;
+      ctx.fillStyle = zone;
+      ctx.fillRect(zoneStartPx, floorY, zoneEndPx - zoneStartPx, H - floorY);
+      ctx.strokeStyle = orange;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(zoneStartPx, floorY);
+      ctx.lineTo(zoneEndPx, floorY);
+      ctx.stroke();
+
+      ctx.strokeStyle = orange;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(targetXpx, floorY);
+      ctx.lineTo(targetXpx, floorY - 42);
+      ctx.stroke();
+      ctx.fillStyle = orange;
+      ctx.beginPath();
+      ctx.moveTo(targetXpx, floorY - 42);
+      ctx.lineTo(targetXpx + 15, floorY - 36);
+      ctx.lineTo(targetXpx, floorY - 30);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   function drawScene() {
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getCss('--panel');
@@ -561,32 +696,8 @@
 
     drawFloorPortal(portalAx, floorY, getCss('--blue'), getCss('--blue-glow'));
 
-    // franja de tolerancia (zona de acierto), centrada en la bandera [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
-    const zoneStartPx = targetXpx - targetToleranceM * scaleX;
-    const zoneEndPx = targetXpx + targetToleranceM * scaleX;
-    ctx.fillStyle = getCss('--target-zone');
-    ctx.fillRect(zoneStartPx, floorY, zoneEndPx - zoneStartPx, H - floorY);
-    ctx.strokeStyle = getCss('--orange');
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(zoneStartPx, floorY);
-    ctx.lineTo(zoneEndPx, floorY);
-    ctx.stroke();
-
-    // bandera del objetivo
-    ctx.strokeStyle = getCss('--orange');
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(targetXpx, floorY);
-    ctx.lineTo(targetXpx, floorY - 42);
-    ctx.stroke();
-    ctx.fillStyle = getCss('--orange');
-    ctx.beginPath();
-    ctx.moveTo(targetXpx, floorY - 42);
-    ctx.lineTo(targetXpx + 15, floorY - 36);
-    ctx.lineTo(targetXpx, floorY - 30);
-    ctx.closePath();
-    ctx.fill();
+    // franja de tolerancia (zona de acierto) y superficie objetivo — depende del tipo sorteado [V0-tip 7aa09542-b5e4-42f2-b8a5-62d37787f352]
+    drawTargetSurface();
     drawRampPortal(rampX, floorY, theta, getCss('--orange'), getCss('--orange-glow'));
 
     // guía de altura de caída
@@ -713,8 +824,17 @@
       trace2.push({ x: ball.x, y: ball.y });
       if (ball.y < minFlightY) minFlightY = ball.y;
 
-      if (ball.y >= floorY) {
-        ball.y = floorY;
+      let hit = false;
+      if (targetType === 'wall') {
+        hit = Math.abs(ball.x - targetXpx) <= hitWindowPx && Math.abs(ball.y - targetYpx) <= targetToleranceM * scale;
+      } else if (targetType === 'ceiling') {
+        hit = Math.abs(ball.y - targetYpx) <= hitWindowPx && Math.abs(ball.x - targetXpx) <= targetToleranceM * scaleX;
+      }
+
+      const landed = ball.y >= floorY;
+
+      if (hit || landed) {
+        if (landed) ball.y = floorY;
         state = 'landed';
         const range = Math.abs(ball.x - rampX) / scaleX;
         const maxH = (floorY - minFlightY) / scale;
@@ -722,23 +842,44 @@
         maxHVal.textContent = maxH.toFixed(1) + ' m';
         rangeRow.style.display = 'flex';
         maxHRow.style.display = 'flex';
-        landMarker = { x: ball.x, y: floorY };
+        landMarker = { x: ball.x, y: ball.y };
         landTime = performance.now();
 
-        const errPx = Math.abs(ball.x - targetXpx);
-        const errM = errPx / scaleX;
-        const success = errM <= targetToleranceM;
+        let success, errM;
+        if (targetType === 'floor') {
+          errM = Math.abs(ball.x - targetXpx) / scaleX;
+          success = landed && errM <= targetToleranceM;
+        } else if (hit) {
+          success = true;
+          errM = targetType === 'wall'
+            ? Math.abs(ball.y - targetYpx) / scale
+            : Math.abs(ball.x - targetXpx) / scaleX;
+        } else {
+          success = false;
+          errM = null;
+        }
+
         punchBox.classList.add('show');
         punchBox.classList.toggle('success', success);
         punchBox.classList.toggle('fail', !success);
         const linesP = success ? successLines : failLines;
         const lineP = linesP[Math.floor(Math.random() * linesP.length)];
-        punchBox.textContent = lineP + ' (error: ' + errM.toFixed(2) + ' m)';
+        punchBox.textContent = errM !== null ? lineP + ' (error: ' + errM.toFixed(2) + ' m)' : lineP;
 
-        const cerca45 = Math.abs(Math.abs(theta) - 45) <= 3;
-        note.innerHTML += cerca45
-          ? ' A ' + Math.abs(theta).toFixed(0) + '°, cerca del óptimo: para una misma velocidad, ningún otro ángulo llega más lejos que 45° (a cualquiera de los dos lados).'
-          : ' Prueba a acercar la inclinación a 45° con la misma altura de caída y compara el alcance — es el punto donde, para esta velocidad, se llega más lejos, sea cual sea el lado.';
+        if (targetType === 'floor') {
+          const cerca45 = Math.abs(Math.abs(theta) - 45) <= 3;
+          note.innerHTML += cerca45
+            ? ' A ' + Math.abs(theta).toFixed(0) + '°, cerca del óptimo: para una misma velocidad, ningún otro ángulo llega más lejos que 45° (a cualquiera de los dos lados).'
+            : ' Prueba a acercar la inclinación a 45° con la misma altura de caída y compara el alcance — es el punto donde, para esta velocidad, se llega más lejos, sea cual sea el lado.';
+        } else if (success) {
+          note.innerHTML += targetType === 'wall'
+            ? ' Ha tocado la pared justo en la altura marcada — aquí no basta con el alcance: la altura y la distancia tienen que coincidir a la vez.'
+            : ' Ha tocado el techo justo en el punto marcado — hace falta suficiente velocidad vertical para llegar tan alto, y el ángulo correcto para que ocurra en el sitio exacto.';
+        } else {
+          note.innerHTML += targetType === 'wall'
+            ? ' Ha aterrizado sin tocar la pared a la altura marcada. Prueba a subir la altura de caída (más velocidad) o a ajustar el ángulo.'
+            : ' Ha aterrizado sin llegar al techo en el punto marcado. Hace falta más velocidad vertical, más ángulo, o ambas cosas.';
+        }
         requestAnimationFrame(pulseLoop);
       }
     }
