@@ -42,12 +42,11 @@ Vanilla HTML + CSS + JS. Sin paso de compilación. Pensado para servirse tal cua
 
 ## Artículos
 
-Cada simulación tendrá un artículo hermano en Bitácora Glitch con el contexto físico completo. Los enlaces se añadirán a esta landing a medida que se publiquen.
+**[Aprender a pensar en portales](https://v0raonline.substack.com/p/aprender-a-pensar-en-portales)** — artículo 1, hermano de la demo de conservación de velocidad. El resto de simulaciones tendrán su propio artículo; los enlaces se añadirán a medida que se publiquen.
 
 ## Backlog
 
-- **Cuando se publique el primer artículo en Bitácora Glitch:** actualizar el enlace "Artículo en Bitácora Glitch" del footer (landing + las cinco simulaciones) con la URL real del artículo, en vez de apuntar solo a la raíz del Substack.
-- **Añadir un enlace más visible al artículo** que el footer discreto actual: un botón o un portal adicional con estética ligeramente distinta (para diferenciarlo de los cinco portales de navegación entre simulaciones), pensado para cuando exista contenido real al que enlazar.
+- **Añadir un enlace más visible al artículo** que el footer discreto actual: un botón o un portal adicional con estética ligeramente distinta (para diferenciarlo de los cinco portales de navegación entre simulaciones).
 
 ## Licencia
 
