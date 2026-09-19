@@ -262,13 +262,13 @@
   /* ---- Cinco portales ---- */
   .portal-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 14px;
     margin-top: 10px;
   }
 
-  @media (max-width: 900px) { .portal-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 480px) { .portal-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .portal-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 480px) { .portal-grid { grid-template-columns: repeat(2, 1fr); } }
 
   .portal-card {
     display: block;
@@ -430,6 +430,109 @@
 
   .portal-card[data-color="blue"] .portal-enter { color: var(--blue); }
   .portal-card[data-color="orange"] .portal-enter { color: var(--orange); }
+
+  /* ---- sexto portal: enlace al artículo (cuaderno + glitch) ---- */
+  .article-card:hover,
+  .article-card.touch-active { border-color: var(--orange); }
+
+  .article-shape {
+    position: relative;
+    width: 68px;
+    height: 100px;
+    margin: 0 auto 14px;
+  }
+
+  .article-ring-glow {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 54px;
+    height: 15px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, var(--orange-glow) 0%, transparent 70%);
+    opacity: 0.5;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .article-card:hover .article-ring-glow,
+  .article-card.touch-active .article-ring-glow { opacity: 1; transform: translateX(-50%) scale(1.3); }
+
+  .article-ring {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 54px;
+    height: 14px;
+    transform: translateX(-50%);
+    border: 3px solid var(--orange);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--orange-glow);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .article-ring { animation: shapeBreathe 3.6s ease-in-out infinite; --glow: var(--orange-glow); }
+  }
+
+  .article-shape svg {
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    width: 40px;
+    height: 49px;
+    transform: translateX(-50%) rotate(30deg);
+    overflow: visible;
+  }
+
+  .article-notebook { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  .article-glitch { opacity: 0; }
+  .article-glitch-blue .article-notebook { stroke: var(--blue); }
+  .article-glitch-orange .article-notebook { stroke: var(--orange); }
+
+  @keyframes articleGlitchBlue {
+    0%, 100% { opacity: 0; transform: translate(0, 0); }
+    8%  { opacity: .85; transform: translate(-3px, 1px); }
+    16% { opacity: 0; }
+    42% { opacity: .6;  transform: translate(-2px, -1px); }
+    50% { opacity: 0; }
+    74% { opacity: .7;  transform: translate(-4px, 0); }
+    82% { opacity: 0; }
+  }
+  @keyframes articleGlitchOrange {
+    0%, 100% { opacity: 0; transform: translate(0, 0); }
+    12% { opacity: .8;  transform: translate(3px, -1px); }
+    20% { opacity: 0; }
+    46% { opacity: .55; transform: translate(2px, 1px); }
+    55% { opacity: 0; }
+    78% { opacity: .65; transform: translate(4px, 0); }
+    88% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .article-card:hover .article-glitch-blue,
+    .article-card.touch-active .article-glitch-blue { animation: articleGlitchBlue 1.1s steps(1) infinite; }
+    .article-card:hover .article-glitch-orange,
+    .article-card.touch-active .article-glitch-orange { animation: articleGlitchOrange 1.3s steps(1) infinite; }
+  }
+
+  .article-noise { position: absolute; background: var(--ink); opacity: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .article-card:hover .article-noise,
+    .article-card.touch-active .article-noise { animation: articleNoise 1.1s steps(1) infinite; }
+  }
+  @keyframes articleNoise {
+    0%, 100% { opacity: 0; }
+    14% { opacity: .8; }
+    18% { opacity: 0; }
+    47% { opacity: .6; }
+    52% { opacity: 0; }
+    76% { opacity: .7; }
+    80% { opacity: 0; }
+  }
+  .an1 { width: 10px; height: 2px; left: 2px;  top: 14px; background: var(--blue); }
+  .an2 { width: 8px;  height: 2px; right: 0px; top: 24px; background: var(--orange); animation-delay: .3s; }
+  .an3 { width: 6px;  height: 2px; left: 6px;  top: 42px; background: var(--orange); animation-delay: .55s; }
+  .an4 { width: 9px;  height: 2px; right: 2px; top: 50px; background: var(--blue); animation-delay: .8s; }
 
   .portal-card:hover .portal-desc,
   .portal-card.touch-active .portal-desc {
@@ -602,6 +705,31 @@
         <h3 class="portal-name">Velocidad terminal</h3>
         <p class="portal-desc">Sigue cayendo. Ha dejado de acelerar.</p>
         <span class="portal-enter">ENTRAR →</span>
+      </a>
+
+      <a class="portal-card article-card" href="https://v0raonline.substack.com/p/aprender-a-pensar-en-portales" target="_blank" rel="noopener">
+        <div class="article-shape">
+          <div class="article-ring-glow"></div>
+          <div class="article-ring"></div>
+
+          <svg viewBox="0 0 60 74">
+            <path class="article-notebook" d="M14,4 L48,4 L48,50 L14,50 Z M22,12 L40,12 L40,19 L22,19 Z M20,28 L42,28 M20,34 L42,34 M8,12 L14,12 M8,20 L14,20 M8,28 L14,28 M8,36 L14,36 M8,44 L14,44" />
+          </svg>
+          <svg class="article-glitch article-glitch-blue" viewBox="0 0 60 74">
+            <path class="article-notebook" d="M14,4 L48,4 L48,50 L14,50 Z M22,12 L40,12 L40,19 L22,19 Z M20,28 L42,28 M20,34 L42,34 M8,12 L14,12 M8,20 L14,20 M8,28 L14,28 M8,36 L14,36 M8,44 L14,44" />
+          </svg>
+          <svg class="article-glitch article-glitch-orange" viewBox="0 0 60 74">
+            <path class="article-notebook" d="M14,4 L48,4 L48,50 L14,50 Z M22,12 L40,12 L40,19 L22,19 Z M20,28 L42,28 M20,34 L42,34 M8,12 L14,12 M8,20 L14,20 M8,28 L14,28 M8,36 L14,36 M8,44 L14,44" />
+          </svg>
+
+          <span class="article-noise an1"></span>
+          <span class="article-noise an2"></span>
+          <span class="article-noise an3"></span>
+          <span class="article-noise an4"></span>
+        </div>
+        <h3 class="portal-name">Bitácora Glitch</h3>
+        <p class="portal-desc">Aprender a pensar en portales — el artículo detrás de esta serie.</p>
+        <span class="portal-enter" style="color:var(--orange);">LEER →</span>
       </a>
 
     </div>

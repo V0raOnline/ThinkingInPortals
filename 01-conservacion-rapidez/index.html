@@ -136,6 +136,36 @@
     flex-shrink: 0;
   }
 
+  .sim-pill.article-pill .mini-shape {
+    width: 18px;
+    height: 24px;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .mini-notebook-ring {
+    position: absolute;
+    left: 50%;
+    bottom: 1px;
+    width: 16px;
+    height: 4px;
+    transform: translateX(-50%);
+    border: 1.5px solid var(--orange);
+    border-radius: 50%;
+  }
+
+  .mini-notebook-body {
+    position: absolute;
+    left: 50%;
+    bottom: 3px;
+    width: 10px;
+    height: 13px;
+    transform: translateX(-50%) rotate(22deg);
+    border: 1.5px solid var(--orange);
+    border-radius: 1.5px;
+  }
+
   .sim-pill .mini-shape svg {
     position: absolute;
     inset: 0;
@@ -362,6 +392,7 @@
     <a class="sim-pill" data-color="blue" href="../03-esfera-energia/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M10,80 L58,18" /></svg></span>03</a>
     <a class="sim-pill" data-color="orange" href="../04-fling-cadena/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,12 L34,88" /></svg></span>04</a>
     <a class="sim-pill" data-color="blue" href="../05-velocidad-terminal/index.html"><span class="mini-shape"><svg viewBox="0 0 68 100"><path d="M34,6 C34,45 34,55 34,80" /></svg></span>05</a>
+    <a class="sim-pill article-pill" href="https://v0raonline.substack.com/p/aprender-a-pensar-en-portales" target="_blank" rel="noopener"><span class="mini-shape"><span class="mini-notebook-ring"></span><span class="mini-notebook-body"></span></span>art.</a>
   </nav>
 
   <header class="nameplate">
