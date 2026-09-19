@@ -46,7 +46,7 @@ Vanilla HTML + CSS + JS. Sin paso de compilación. Pensado para servirse tal cua
 
 ## Backlog
 
-- **Añadir un enlace más visible al artículo** que el footer discreto actual: un botón o un portal adicional con estética ligeramente distinta (para diferenciarlo de los cinco portales de navegación entre simulaciones).
+- **Interruptor para forzar animaciones** cuando el sistema tiene activado `prefers-reduced-motion` pero la persona quiere verlas igualmente (esto puede activarse sin que se pida realmente — modo ahorro de batería, ciertas actualizaciones de Windows). Implica sustituir los `@media (prefers-reduced-motion: no-preference)` de las seis páginas por una clase JS combinada con la preferencia del sistema, guardada en `localStorage`. No es trivial: toca las seis páginas, una por una.
 
 ## Licencia
 
